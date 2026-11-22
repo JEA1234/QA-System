@@ -1,0 +1,21 @@
+import { Component, ElementRef, forwardRef, HostListener, Input, ChangeDetectorRef, Output, EventEmitter } from '@angular/core';
+import { ControlValueAccessor, NG_VALUE_ACCESSOR } from '@angular/forms';
+import { CommonModule } from '@angular/common';
+export interface SelectOption { value: string; label: string; }
+@Component({ selector: 'app-select-search', standalone: true, imports: [CommonModule], template: `<div class="select-search"><input [placeholder]="placeholder" [value]="label" [readonly]="behaveAsSelect" [disabled]="disabled" (input)="search($event)" (click)="open()" autocomplete="off"><span class="material-symbols-outlined select-chevron" (click)="open()">{{ opened ? 'expand_less' : 'expand_more' }}</span><div class="select-options" *ngIf="opened"><button type="button" *ngFor="let option of filtered" (mousedown)="choose(option)" [class.selected]="option.value === value">{{ option.label }}</button><span class="select-empty" *ngIf="!filtered.length">No hay resultados</span></div></div>`, styles: [`.select-search{position:relative;width:100%}.select-search input{width:100%;height:40px;padding:0 38px 0 12px;border:1px solid var(--border,#e2e8f0);border-radius:6px;background:#fff;color:var(--on-surface,#0f172a);font:inherit;outline:none}.select-search input:focus{border-color:var(--primary,#2563eb);box-shadow:0 0 0 3px var(--primary-light,#eff6ff)}.select-chevron{position:absolute;right:10px;top:10px;color:var(--outline,#737686);cursor:pointer}.select-options{position:absolute;z-index:100;width:100%;max-height:220px;overflow:auto;margin-top:4px;border:1px solid var(--border,#e2e8f0);border-radius:6px;background:#fff;box-shadow:0 10px 24px rgba(15,23,42,.14)}.select-options button{display:block;width:100%;padding:9px 12px;border:0;background:#fff;text-align:left;color:#334155;cursor:pointer;font:inherit}.select-options button:hover,.select-options button.selected{background:var(--primary-light,#eff6ff);color:var(--primary-hover,#1d4ed8)}.select-empty{display:block;padding:10px 12px;color:#94a3b8;font-size:12px}`], providers: [{ provide: NG_VALUE_ACCESSOR, useExisting: forwardRef(() => SelectSearchComponent), multi: true }] })
+export class SelectSearchComponent implements ControlValueAccessor {
+  @Input() options: SelectOption[] = []; @Input() placeholder = 'Selecciona una opción'; @Input() behaveAsSelect = false; @Input() disabled = false; @Input() allowClear = false;
+  @Input() set value(input: string) { this.currentValue = input || ''; this.updateLabel(); } get value(): string { return this.currentValue; }
+  @Output() valueChange = new EventEmitter<string>();
+  private currentValue = ''; label = ''; opened = false; filtered: SelectOption[] = []; private onChange: (value: string) => void = () => {}; private onTouched: () => void = () => {};
+  constructor(private element: ElementRef, private cdr: ChangeDetectorRef) {}
+  ngOnChanges(): void { this.filtered = this.withClear(this.options); this.updateLabel(); }
+  writeValue(value: string | null): void { this.currentValue = value || ''; this.updateLabel(); this.cdr.markForCheck(); }
+  registerOnChange(fn: (value: string) => void): void { this.onChange = fn; } registerOnTouched(fn: () => void): void { this.onTouched = fn; } setDisabledState(disabled: boolean): void { this.disabled = disabled; }
+  open(): void { if (!this.disabled) { this.opened = true; this.filtered = this.withClear(this.options); } }
+  search(event: Event): void { if (this.behaveAsSelect) return; const text = (event.target as HTMLInputElement).value; this.label = text; this.opened = true; this.filtered = this.options.filter(o => o.label.toLowerCase().includes(text.toLowerCase())); }
+  choose(option: SelectOption): void { this.currentValue = option.value; this.label = option.label; this.opened = false; this.onChange(option.value); this.valueChange.emit(option.value); this.onTouched(); }
+  @HostListener('document:mousedown', ['$event']) closeOutside(event: MouseEvent): void { if (!this.element.nativeElement.contains(event.target)) { this.opened = false; this.onTouched(); } }
+  private withClear(list: SelectOption[]): SelectOption[] { return this.allowClear ? [{ value: '', label: this.placeholder }, ...list] : list; }
+  private updateLabel(): void { this.label = this.options.find(o => o.value === this.value)?.label || ''; }
+}

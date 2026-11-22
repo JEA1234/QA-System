@@ -1,0 +1,143 @@
+<div class="modal-backdrop" (click)="cerrar()">
+  <div class="modal-form-box" (click)="$event.stopPropagation()">
+
+    <!-- Header modal -->
+    <div class="modal-form-header">
+      <div class="modal-header-left">
+        <div class="modal-header-icon">
+          <span class="material-symbols-outlined filled">{{ isEdit ? 'edit' : 'add_circle' }}</span>
+        </div>
+        <div>
+          <h2 class="modal-form-title">{{ isEdit ? 'Editar proyecto' : 'Nuevo proyecto' }}</h2>
+          <p class="modal-form-sub">{{ isEdit ? 'Modifica los datos del proyecto (RQ-MOD02)' : 'Define el alcance y el equipo QA asignado' }}</p>
+        </div>
+      </div>
+      <button class="modal-close-btn" (click)="cerrar()" type="button">
+        <span class="material-symbols-outlined">close</span>
+      </button>
+    </div>
+
+    <!-- Contenido del form -->
+    <div class="modal-form-body">
+
+      <!-- Seccion datos generales -->
+      <div class="modal-section">
+        <div class="modal-section-title">
+          <span class="material-symbols-outlined">dataset</span>
+          <span>Datos Generales e Identificaci&oacute;n</span>
+        </div>
+        <div class="fields-grid">
+          
+          <div class="field">
+            <label class="field-label" for="codigo">C&oacute;digo del Proyecto <span class="req-mark">*</span></label>
+            <div class="input-wrapper">
+              <span class="material-symbols-outlined input-icon">tag</span>
+              <input id="codigo" type="text" class="input" placeholder="Ej. PRJ-2024-01"
+                [(ngModel)]="proyecto.codigo" name="codigo" required />
+            </div>
+          </div>
+
+          <div class="field">
+            <label class="field-label" for="nombre">Nombre Oficial <span class="req-mark">*</span></label>
+            <div class="input-wrapper">
+              <span class="material-symbols-outlined input-icon">drive_file_rename_outline</span>
+              <input id="nombre" type="text" class="input" placeholder="Nombre del proyecto"
+                [(ngModel)]="proyecto.nombre" name="nombre" required />
+            </div>
+          </div>
+
+          <div class="field field-full">
+            <label class="field-label" for="cliente">Cliente Institucional <span class="req-mark">*</span></label>
+            <div class="input-wrapper">
+              <span class="material-symbols-outlined input-icon">domain</span>
+              <app-select-search [options]="opcionesClientes()" [value]="proyecto.cliente" placeholder="Selecciona un cliente" [behaveAsSelect]="true" (valueChange)="seleccionarCliente($event)"></app-select-search>
+            </div>
+          </div>
+
+          <div class="field field-full">
+            <label class="field-label" for="descripcion">Descripci&oacute;n del Alcance <span class="req-mark">*</span></label>
+            <div class="input-wrapper description-wrapper">
+              <span class="material-symbols-outlined input-icon description-icon">description</span>
+              <textarea id="descripcion" class="input description-input" rows="5" placeholder="Breve descripci&oacute;n del objetivo..."
+                [(ngModel)]="proyecto.descripcion" name="descripcion" required></textarea>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- Seccion Cronograma -->
+      <div class="modal-section">
+        <div class="modal-section-title">
+          <span class="material-symbols-outlined">calendar_month</span>
+          <span>Cronograma</span>
+        </div>
+        <div class="fields-grid">
+          <div class="field">
+            <label class="field-label" for="fechaInicio">Fecha Inicio</label>
+            <div class="input-wrapper">
+              <app-date-picker id="fechaInicio" placeholder="dd/mm/yyyy" [(ngModel)]="proyecto.fechaInicio"></app-date-picker>
+            </div>
+          </div>
+
+          <div class="field">
+            <label class="field-label" for="fechaFin">Fecha Fin Estimada</label>
+            <div class="input-wrapper">
+              <app-date-picker id="fechaFin" placeholder="dd/mm/yyyy" [minDate]="proyecto.fechaInicio || undefined" [(ngModel)]="proyecto.fechaFin"></app-date-picker>
+              <small class="date-error" *ngIf="fechaError">{{ fechaError }}</small>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Seccion Equipo -->
+      <div class="modal-section">
+        <div class="modal-section-title">
+          <span class="material-symbols-outlined">groups</span>
+          <span>Asignaci&oacute;n de Equipo</span>
+        </div>
+        <div class="fields-grid">
+          <div class="field field-full">
+            <label class="field-label" for="liderQa">L&iacute;der QA Asignado</label>
+            <div class="input-wrapper">
+              <span class="material-symbols-outlined input-icon">shield_person</span>
+              <app-select-search [options]="opcionesLideres()" [value]="toValue(proyecto.liderQaId)" placeholder="Selecciona el líder QA" [behaveAsSelect]="true" (valueChange)="seleccionarLider($event)"></app-select-search>
+            </div>
+          </div>
+
+          <div class="field field-full">
+            <label class="field-label">Equipo de Testers</label>
+            <div class="roles-grid" style="grid-template-columns: 1fr 1fr;">
+              <div class="role-card" *ngFor="let tester of testersDisponibles"
+                [class.role-card-active]="tester.activo" (click)="toggleTester(tester)">
+                <div class="role-card-left">
+                  <div style="width: 32px; height: 32px; border-radius: 50%; background: var(--primary-fixed); color: var(--on-primary-fixed); display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 11px;">
+                    {{ tester.iniciales }}
+                  </div>
+                  <div>
+                    <p class="role-card-name">{{ tester.nombres }}</p>
+                    <p class="role-card-desc">{{ tester.rol }}</p>
+                  </div>
+                </div>
+                <span class="material-symbols-outlined filled role-check" [class.role-checked]="tester.activo">
+                  {{ tester.activo ? 'check_circle' : 'radio_button_unchecked' }}
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Footer modal -->
+    <div class="modal-form-footer">
+      <button class="btn-ghost" (click)="cerrar()" type="button">Cancelar</button>
+      <button class="btn-primary-sm btn-save" (click)="guardar()" [disabled]="!proyecto.codigo || !proyecto.nombre || !proyecto.cliente || !proyecto.descripcion">
+        <span class="material-symbols-outlined filled btn-icon">{{ isEdit ? 'save' : 'add_circle' }}</span>
+        <span>{{ isEdit ? 'Guardar cambios' : 'Guardar y Crear' }}</span>
+      </button>
+    </div>
+
+  </div>
+</div>

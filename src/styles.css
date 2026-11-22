@@ -1,0 +1,272 @@
+﻿/* ============================================================
+   QA System â€” Design System Tokens
+   Basado en la especificacion oficial del MOD-01
+   ============================================================ */
+
+@import 'ag-grid-community/styles/ag-grid.css';
+@import 'ag-grid-community/styles/ag-theme-alpine.css';
+@import 'flatpickr/dist/flatpickr.min.css';
+
+.flatpickr-calendar { z-index: 10050 !important; font-family: var(--font-sans); }
+
+:root {
+  /* --- Primary --- */
+  --primary: #2563eb;
+  --primary-hover: #1d4ed8;
+  --primary-light: #eff6ff;
+  --primary-fixed: #dbe1ff;
+  --primary-fixed-dim: #b4c5ff;
+  --on-primary: #ffffff;
+  --on-primary-fixed: #00174b;
+  --on-primary-fixed-variant: #003ea8;
+
+  /* --- Surface --- */
+  --surface: #f8f9ff;
+  --surface-container: #e5eeff;
+  --surface-container-low: #eff4ff;
+  --surface-container-lowest: #ffffff;
+  --surface-container-high: #dce9ff;
+  --surface-container-highest: #d3e4fe;
+  --surface-variant: #d3e4fe;
+
+  /* --- Text --- */
+  --on-surface: #0b1c30;
+  --on-surface-variant: #434655;
+  --outline: #737686;
+  --outline-variant: #c3c6d7;
+
+  /* --- Secondary --- */
+  --secondary: #565e74;
+  --secondary-container: #dae2fd;
+  --secondary-fixed: #dae2fd;
+
+  /* --- Error --- */
+  --error: #ba1a1a;
+  --error-container: #ffdad6;
+  --on-error: #ffffff;
+  --on-error-container: #93000a;
+
+  /* --- Success --- */
+  --success-bg: #ecfdf5;
+  --success-text: #065f46;
+  --success-border: #a7f3d0;
+
+  /* --- Warning --- */
+  --warning-bg: #fffbeb;
+  --warning-text: #92400e;
+  --warning-border: #fde68a;
+
+  /* --- Sidebar --- */
+  --sidebar-bg: #0f172a;
+  --sidebar-accent: #1e293b;
+  --sidebar-text: #94a3b8;
+  --sidebar-text-active: #ffffff;
+
+  /* --- Border --- */
+  --border: #e2e8f0;
+
+  /* --- Role colors --- */
+  --role-admin-bg: #eef2ff;
+  --role-admin-text: #4338ca;
+  --role-lider-bg: #faf5ff;
+  --role-lider-text: #6b21a8;
+  --role-tester-bg: #f0fdfa;
+  --role-tester-text: #115e59;
+  --role-dev-bg: #eff6ff;
+  --role-dev-text: #1e40af;
+
+  /* --- Spacing --- */
+  --space-2xs: 0.125rem;
+  --space-xs: 0.25rem;
+  --space-sm: 0.5rem;
+  --space-md: 0.75rem;
+  --space-base: 1rem;
+  --space-lg: 1.5rem;
+  --space-xl: 2rem;
+  --space-2xl: 2.5rem;
+
+  /* --- Radius --- */
+  --radius: 0.25rem;
+  --radius-lg: 0.5rem;
+  --radius-xl: 0.75rem;
+  --radius-full: 9999px;
+
+  /* --- Shadows --- */
+  --shadow-sm: 0 1px 2px rgba(0,0,0,0.05);
+  --shadow: 0 1px 3px rgba(0,0,0,0.1), 0 1px 2px rgba(0,0,0,0.06);
+  --shadow-md: 0 4px 6px rgba(0,0,0,0.07), 0 2px 4px rgba(0,0,0,0.06);
+  --shadow-xl: 0 20px 25px rgba(0,0,0,0.1), 0 8px 10px rgba(0,0,0,0.04);
+
+  /* --- Typography --- */
+  --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
+  --font-mono: 'Inter', system-ui, -apple-system, sans-serif;
+}
+
+/* === Global Reset === */
+*, *::before, *::after {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html, body {
+  height: 100%;
+  font-family: var(--font-sans);
+  font-size: 14px;
+  line-height: 1.25rem;
+  color: var(--on-surface);
+  background-color: var(--surface);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* === Material Symbols Config === */
+.material-symbols-outlined {
+  font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+}
+
+.material-symbols-outlined.filled {
+  font-variation-settings: 'FILL' 1;
+}
+
+/* === Typography Classes === */
+.text-headline-xl { font-size: 1.875rem; line-height: 2.25rem; letter-spacing: -0.025em; font-weight: 700; }
+.text-headline-lg { font-size: 1.5rem; line-height: 2rem; letter-spacing: -0.02em; font-weight: 600; }
+.text-headline-md { font-size: 1.25rem; line-height: 1.75rem; letter-spacing: -0.015em; font-weight: 600; }
+.text-headline-sm { font-size: 1.125rem; line-height: 1.5rem; letter-spacing: -0.01em; font-weight: 600; }
+.text-title-md { font-size: 1rem; line-height: 1.5rem; letter-spacing: -0.005em; font-weight: 600; }
+.text-body-lg { font-size: 1rem; line-height: 1.5rem; font-weight: 400; }
+.text-body-md { font-size: 0.875rem; line-height: 1.25rem; font-weight: 400; }
+.text-body-sm { font-size: 0.75rem; line-height: 1rem; font-weight: 400; }
+.text-label-lg { font-size: 0.875rem; line-height: 1.25rem; font-weight: 500; }
+.text-label-md { font-size: 0.75rem; line-height: 1rem; letter-spacing: 0.025em; font-weight: 600; }
+.text-label-sm { font-size: 0.6875rem; line-height: 0.875rem; letter-spacing: 0.05em; font-weight: 600; }
+.text-code-sm { font-family: var(--font-mono); font-size: 0.8125rem; line-height: 1.125rem; font-weight: 500; }
+
+/* === Scrollbar === */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--outline-variant); border-radius: var(--radius-full); }
+::-webkit-scrollbar-thumb:hover { background: var(--outline); }
+
+/* === Números uniformes: cero normal (sin punto ni raya) y dígitos alineados === */
+body { font-variant-numeric: tabular-nums; }
+
+/* === Estilos base compartidos por todos los módulos === */
+.page-title { font-size: 1.5rem; font-weight: 700; letter-spacing: -0.02em; }
+.page-subtitle { font-size: 0.875rem; }
+
+/* === Botones de la columna Acciones en tablas ag-grid (Requerimientos, Proyectos, Casos de prueba) ===
+   Los genera ag-grid con HTML, por eso el CSS encapsulado del componente no los alcanza. */
+.ag-theme-alpine .action-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  vertical-align: middle;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--outline, #737686);
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.ag-theme-alpine .action-btn .material-symbols-outlined { font-size: 18px; }
+.ag-theme-alpine .action-btn:hover {
+  color: var(--primary, #2563eb);
+  background: var(--surface-container-low, #eff4ff);
+  border-color: var(--border, #e2e8f0);
+}
+.ag-theme-alpine .action-btn.danger-action:hover {
+  color: var(--on-error-container, #93000a);
+  background: var(--error-container, #ffdad6);
+}
+
+/* === Celdas y etiquetas generadas por ag-grid en Requerimientos y Casos de prueba (el CSS del componente no las alcanza) === */
+.requirements-grid .badge-code,
+.cases-grid .badge-code,
+.requirements-grid .version-badge,
+.cases-grid .version-badge {display:inline-block;padding:4px 8px;border-radius:5px;background:var(--primary-light);color:var(--primary-hover);font-size:12px;font-weight:600}
+.requirements-grid .version-badge,
+.cases-grid .version-badge {background:#f1f5f9;color:#475569}
+.requirements-grid .requirement-cell,
+.cases-grid .requirement-cell,
+.requirements-grid .case-cell,
+.cases-grid .case-cell {display:flex;flex-direction:column;justify-content:center;height:100%;line-height:18px;padding:4px 0}
+.requirements-grid .requirement-cell strong,
+.cases-grid .requirement-cell strong,
+.requirements-grid .case-cell strong,
+.cases-grid .case-cell strong {font-weight:600;color:var(--on-surface);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.requirements-grid .requirement-cell span,
+.cases-grid .requirement-cell span,
+.requirements-grid .case-cell span,
+.cases-grid .case-cell span {font-size:12px;color:var(--outline)}
+.requirements-grid .soft-badge,
+.cases-grid .soft-badge,
+.requirements-grid .priority-badge,
+.cases-grid .priority-badge,
+.requirements-grid .status-badge,
+.cases-grid .status-badge {display:inline-flex;align-items:center;width:max-content;padding:4px 8px;border-radius:999px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.03em}
+.requirements-grid .soft-badge,
+.cases-grid .soft-badge {background:#f1f5f9;color:#475569}
+.requirements-grid .priority-alta,
+.cases-grid .priority-alta {background:var(--error-container);color:var(--on-error-container)}
+.requirements-grid .priority-media,
+.cases-grid .priority-media {background:var(--warning-bg);color:var(--warning-text)}
+.requirements-grid .priority-baja,
+.cases-grid .priority-baja {background:var(--success-bg);color:var(--success-text)}
+.requirements-grid .status-badge,
+.cases-grid .status-badge {background:#f1f5f9;color:#475569}
+.requirements-grid .status-activo,
+.cases-grid .status-activo,
+.requirements-grid .status-aprobado,
+.cases-grid .status-aprobado {background:var(--success-bg);color:var(--success-text)}
+.requirements-grid .status-en_progreso,
+.cases-grid .status-en_progreso {background:var(--warning-bg);color:var(--warning-text)}
+.requirements-grid .status-rechazado,
+.cases-grid .status-rechazado,
+.requirements-grid .status-inactivo,
+.cases-grid .status-inactivo {background:var(--error-container);color:var(--on-error-container)}
+.requirements-grid .status-dot,
+.cases-grid .status-dot {width:6px;height:6px;background:currentColor;border-radius:50%;margin-right:5px}
+.requirements-grid .muted,
+.cases-grid .muted {color:var(--outline);font-style:italic}
+
+/* Etiquetas a su altura natural (no estiradas a toda la fila) */
+.requirements-grid .badge-code, .cases-grid .badge-code,
+.requirements-grid .version-badge, .cases-grid .version-badge,
+.requirements-grid .soft-badge, .cases-grid .soft-badge,
+.requirements-grid .priority-badge, .cases-grid .priority-badge,
+.requirements-grid .status-badge, .cases-grid .status-badge { align-self: center; }
+
+/* Etiquetas: misma forma y altura que en Ejecución y Evidencias */
+.requirements-grid .badge-code, .cases-grid .badge-code,
+.requirements-grid .version-badge, .cases-grid .version-badge,
+.requirements-grid .soft-badge, .cases-grid .soft-badge,
+.requirements-grid .priority-badge, .cases-grid .priority-badge,
+.requirements-grid .status-badge, .cases-grid .status-badge {
+  line-height: 1.2;
+  vertical-align: middle;
+  text-transform: none;
+  letter-spacing: 0.02em;
+  font-size: 0.75rem;
+  padding: 4px 10px;
+  border-radius: 20px;
+}
+.requirements-grid .badge-code, .cases-grid .badge-code,
+.requirements-grid .version-badge, .cases-grid .version-badge { border-radius: 8px; }
+
+/* === Proyectos: etiquetas generadas por ag-grid (mismo diseño que Requerimientos/Casos) === */
+.proyectos-grid .badge-code {display:inline-block;padding:4px 10px;border-radius:8px;background:var(--primary-light);color:var(--primary-hover);font-size:.75rem;font-weight:600;line-height:1.2;vertical-align:middle}
+.proyectos-grid .status-cell {display:flex;align-items:center;height:100%}
+.proyectos-grid .status-badge {display:inline-flex;align-items:center;padding:4px 10px;border-radius:20px;font-size:.75rem;font-weight:600;line-height:1.2;vertical-align:middle;letter-spacing:.02em;text-transform:none}
+.proyectos-grid .status-dot {width:6px;height:6px;border-radius:50%;background:currentColor;margin-right:5px}
+.proyectos-grid .status-active {background:#dcfce7;color:#166534}
+.proyectos-grid .status-inactive {background:#f1f5f9;color:#475569}
+.proyectos-grid .status-blocked {background:#fef3c7;color:#92400e}
+.proyectos-grid .user-cell {display:flex;align-items:center;height:100%;min-width:0}
+.proyectos-grid .user-info {display:flex;flex-direction:column;justify-content:center;min-width:0;line-height:1.3}
+.proyectos-grid .user-name {font-size:.875rem;font-weight:600;color:var(--on-surface,#0f172a);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.proyectos-grid .user-email {font-size:.75rem;font-weight:400;color:var(--outline,#737686);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}

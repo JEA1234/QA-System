@@ -1,0 +1,275 @@
+<div class="page-shell">
+  <!-- Cabecera -->
+  <div class="page-header">
+    <div>
+      <h1 class="page-title">Auditoría y Trazabilidad (Audit Trail)</h1>
+      <p class="page-subtitle">
+        Registro inmutable de operaciones críticas, accesos, modificaciones de estado y trazabilidad forense del sistema.
+      </p>
+    </div>
+    <div class="header-actions">
+      <button class="btn-primary-sm" (click)="exportarCsv()" [disabled]="exportando || totalElements === 0">
+        <span class="material-symbols-outlined">download</span>
+        <span>{{ exportando ? 'Exportando...' : 'Exportar Bitácora (CSV)' }}</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- Tarjetas KPI de Resumen -->
+  <div class="kpi-grid" *ngIf="resumen">
+    <div class="kpi-card">
+      <div class="kpi-icon bg-blue-soft text-primary">
+        <span class="material-symbols-outlined">history</span>
+      </div>
+      <div class="kpi-content">
+        <span class="kpi-label">Total de Eventos</span>
+        <span class="kpi-value">{{ resumen.totalLogs }}</span>
+        <span class="kpi-sub">Histórico acumulado</span>
+      </div>
+    </div>
+
+    <div class="kpi-card">
+      <div class="kpi-icon bg-emerald-soft text-emerald">
+        <span class="material-symbols-outlined">today</span>
+      </div>
+      <div class="kpi-content">
+        <span class="kpi-label">Actividad de Hoy</span>
+        <span class="kpi-value">{{ resumen.totalHoy }}</span>
+        <span class="kpi-sub">Eventos en 24h</span>
+      </div>
+    </div>
+
+    <div class="kpi-card">
+      <div class="kpi-icon bg-cyan-soft text-cyan">
+        <span class="material-symbols-outlined">add_circle</span>
+      </div>
+      <div class="kpi-content">
+        <span class="kpi-label">Creaciones</span>
+        <span class="kpi-value">{{ resumen.totalCreaciones }}</span>
+        <span class="kpi-sub">Altas de registros</span>
+      </div>
+    </div>
+
+    <div class="kpi-card">
+      <div class="kpi-icon bg-amber-soft text-amber">
+        <span class="material-symbols-outlined">edit_note</span>
+      </div>
+      <div class="kpi-content">
+        <span class="kpi-label">Modificaciones</span>
+        <span class="kpi-value">{{ resumen.totalModificaciones }}</span>
+        <span class="kpi-sub">Cambios de estado/datos</span>
+      </div>
+    </div>
+
+    <div class="kpi-card">
+      <div class="kpi-icon bg-purple-soft text-purple">
+        <span class="material-symbols-outlined">play_circle</span>
+      </div>
+      <div class="kpi-content">
+        <span class="kpi-label">Ejecuciones</span>
+        <span class="kpi-value">{{ resumen.totalEjecuciones }}</span>
+        <span class="kpi-sub">Test runs registrados</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Barra de Filtros -->
+  <div class="filters-bar">
+    <div class="search-wrapper">
+      <span class="material-symbols-outlined search-icon">search</span>
+      <input
+        class="search-input"
+        placeholder="Buscar por usuario, correo, descripción o IP..."
+        [(ngModel)]="filtroBusqueda"
+        (keyup.enter)="aplicarFiltros()"
+      />
+    </div>
+
+    <div class="filter-select">
+      <select class="form-select" [(ngModel)]="filtroModulo" (change)="aplicarFiltros()">
+        <option *ngFor="let m of modulosList" [value]="m.value">{{ m.label }}</option>
+      </select>
+    </div>
+
+    <div class="filter-select">
+      <select class="form-select" [(ngModel)]="filtroAccion" (change)="aplicarFiltros()">
+        <option *ngFor="let a of accionesList" [value]="a.value">{{ a.label }}</option>
+      </select>
+    </div>
+
+    <button class="btn-outline-sm" (click)="limpiarFiltros()" title="Limpiar filtros">
+      <span class="material-symbols-outlined">filter_alt_off</span>
+      <span>Limpiar</span>
+    </button>
+  </div>
+
+  <!-- Alerta de Error -->
+  <div *ngIf="error" class="error-banner">
+    <span class="material-symbols-outlined">error</span>
+    <span>{{ error }}</span>
+  </div>
+
+  <!-- ESTADO DE CARGA -->
+  <div *ngIf="cargando" class="loading-state">
+    <div class="spinner"></div>
+    <p>Consultando bitácora de auditoría...</p>
+  </div>
+
+  <!-- TABLA DE EVENTOS DE AUDITORÍA -->
+  <div class="table-container" *ngIf="!cargando">
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th style="width: 155px;">Fecha / Hora</th>
+          <th style="width: 200px;">Usuario</th>
+          <th style="width: 130px;">Módulo</th>
+          <th style="width: 110px; text-align: center;">Acción</th>
+          <th style="width: 140px;">Entidad</th>
+          <th>Descripción</th>
+          <th style="width: 100px;">IP</th>
+          <th style="width: 80px; text-align: center;">Detalle</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let log of logs">
+          <td>
+            <div class="date-cell">
+              <span class="date-main">{{ log.fecha | date:'dd/MM/yyyy' }}</span>
+              <span class="date-time">{{ log.fecha | date:'HH:mm:ss' }}</span>
+            </div>
+          </td>
+          <td>
+            <div class="user-cell">
+              <span class="user-name">{{ log.usuarioNombre }}</span>
+              <span class="user-email">{{ log.usuarioCorreo }}</span>
+            </div>
+          </td>
+          <td>
+            <span class="mod-badge" [ngClass]="getModuloClass(log.modulo)">
+              {{ log.modulo }}
+            </span>
+          </td>
+          <td style="text-align: center;">
+            <span class="action-badge" [ngClass]="getAccionClass(log.accion)">
+              {{ log.accion }}
+            </span>
+          </td>
+          <td>
+            <div class="entity-cell" *ngIf="log.entidad">
+              <span class="entity-name">{{ log.entidad }}</span>
+              <span class="entity-id" *ngIf="log.entidadId">#{{ log.entidadId }}</span>
+            </div>
+            <span class="text-muted" *ngIf="!log.entidad">—</span>
+          </td>
+          <td>
+            <span class="desc-text" [title]="log.descripcion">{{ log.descripcion }}</span>
+          </td>
+          <td>
+            <span class="ip-badge">{{ log.ipOrigen || '127.0.0.1' }}</span>
+          </td>
+          <td style="text-align: center;">
+            <button class="btn-icon" (click)="verDetalle(log)" title="Ver detalle forense">
+              <span class="material-symbols-outlined">visibility</span>
+            </button>
+          </td>
+        </tr>
+
+        <tr *ngIf="logs.length === 0">
+          <td colspan="8" class="empty-state">
+            <span class="material-symbols-outlined empty-icon">manage_search</span>
+            <p>No se encontraron registros de auditoría para los criterios seleccionados.</p>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+
+    <!-- Paginador -->
+    <div class="pagination-bar" *ngIf="totalPages > 1">
+      <span class="pagination-info">
+        Mostrando {{ (page * size) + 1 }} - {{ Math.min((page + 1) * size, totalElements) }} de {{ totalElements }} eventos
+      </span>
+      <div class="pagination-controls">
+        <button class="btn-page" [disabled]="page === 0" (click)="cambiarPagina(page - 1)">
+          <span class="material-symbols-outlined">chevron_left</span>
+        </button>
+        <span class="page-current">{{ page + 1 }} / {{ totalPages }}</span>
+        <button class="btn-page" [disabled]="page >= totalPages - 1" (click)="cambiarPagina(page + 1)">
+          <span class="material-symbols-outlined">chevron_right</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: DETALLE FORENSE DEL LOG -->
+  <app-modal [isOpen]="mostrarModalDetalle" (close)="cerrarModal()" maxWidth="650px">
+    <div class="modal-box" *ngIf="logSeleccionado">
+      <div class="modal-header">
+        <div class="modal-title-wrap">
+          <span class="material-symbols-outlined text-primary">fingerprint</span>
+          <h2 class="modal-title">Detalle de Registro #{{ logSeleccionado.id }}</h2>
+        </div>
+        <button class="modal-close-btn" (click)="cerrarModal()">
+          <span class="material-symbols-outlined">close</span>
+        </button>
+      </div>
+
+      <div class="modal-body">
+        <div class="info-grid">
+          <div class="info-item">
+            <span class="info-label">Fecha y Hora</span>
+            <span class="info-val">{{ logSeleccionado.fecha | date:'dd/MM/yyyy HH:mm:ss' }}</span>
+          </div>
+          <div class="info-item">
+            <span class="info-label">Usuario</span>
+            <span class="info-val">{{ logSeleccionado.usuarioNombre }} ({{ logSeleccionado.usuarioCorreo }})</span>
+          </div>
+          <div class="info-item">
+            <span class="info-label">Módulo</span>
+            <span class="info-val font-bold">{{ logSeleccionado.modulo }}</span>
+          </div>
+          <div class="info-item">
+            <span class="info-label">Acción Realizada</span>
+            <span class="info-val font-bold">{{ logSeleccionado.accion }}</span>
+          </div>
+          <div class="info-item">
+            <span class="info-label">Entidad Afectada</span>
+            <span class="info-val">{{ logSeleccionado.entidad || 'N/A' }} {{ logSeleccionado.entidadId ? '(ID: ' + logSeleccionado.entidadId + ')' : '' }}</span>
+          </div>
+          <div class="info-item">
+            <span class="info-label">Dirección IP</span>
+            <span class="info-val font-mono">{{ logSeleccionado.ipOrigen || '127.0.0.1' }}</span>
+          </div>
+        </div>
+
+        <div class="detail-block">
+          <span class="detail-label">Descripción de la Operación</span>
+          <p class="detail-text">{{ logSeleccionado.descripcion }}</p>
+        </div>
+
+        <!-- Diff de Cambios: Datos Anteriores vs Datos Nuevos -->
+        <div class="diff-container" *ngIf="logSeleccionado.datosAnteriores || logSeleccionado.datosNuevos">
+          <div class="diff-col" *ngIf="logSeleccionado.datosAnteriores">
+            <span class="diff-title text-danger">
+              <span class="material-symbols-outlined">remove_circle</span>
+              Datos Anteriores
+            </span>
+            <pre class="diff-pre">{{ logSeleccionado.datosAnteriores }}</pre>
+          </div>
+
+          <div class="diff-col" *ngIf="logSeleccionado.datosNuevos">
+            <span class="diff-title text-emerald">
+              <span class="material-symbols-outlined">add_circle</span>
+              Datos Nuevos
+            </span>
+            <pre class="diff-pre">{{ logSeleccionado.datosNuevos }}</pre>
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button class="btn-primary-sm" (click)="cerrarModal()">Cerrar</button>
+      </div>
+    </div>
+  </app-modal>
+</div>
+

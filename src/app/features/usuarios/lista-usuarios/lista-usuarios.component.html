@@ -1,0 +1,268 @@
+<div class="page-shell">
+
+  <!-- Page header -->
+  <div class="page-header">
+    <div class="page-header-left">
+      <h1 class="page-title">Gesti&oacute;n de Usuarios</h1>
+      <p class="page-subtitle">Administra los accesos, roles y estados de cada cuenta registrada.</p>
+    </div>
+    <button class="btn-primary-sm" (click)="abrirNuevo()">
+      <span class="material-symbols-outlined">person_add</span>
+      <span>Nuevo usuario</span>
+    </button>
+  </div>
+
+  <!-- Filters bar -->
+  <div class="filters-bar">
+    <div class="search-wrapper">
+      <span class="material-symbols-outlined search-icon">search</span>
+      <input type="text" class="search-input" placeholder="Buscar por nombre o correo..."
+        [(ngModel)]="busqueda" (input)="onSearch()" />
+    </div>
+
+    <div class="filter-chips">
+      <button class="chip" [class.chip-active]="filtroEstado === ''" (click)="filtroEstado=''; onFiltroEstado()">
+        Todos
+      </button>
+      <button class="chip" [class.chip-active]="filtroEstado === 'ACTIVO'" (click)="filtroEstado='ACTIVO'; onFiltroEstado()">
+        <span class="dot dot-active"></span> Activos
+      </button>
+      <button class="chip" [class.chip-active]="filtroEstado === 'INACTIVO'" (click)="filtroEstado='INACTIVO'; onFiltroEstado()">
+        <span class="dot dot-inactive"></span> Inactivos
+      </button>
+    </div>
+
+    <div class="results-count">
+      <span class="material-symbols-outlined">group</span>
+      <span>{{ totalElements }} usuario{{ totalElements !== 1 ? 's' : '' }}</span>
+    </div>
+  </div>
+
+  <!-- Table card -->
+  <div class="table-card">
+
+    <!-- Loading overlay -->
+    <div class="loading-overlay" *ngIf="loading">
+      <span class="material-symbols-outlined spin">progress_activity</span>
+      <span>Cargando usuarios...</span>
+    </div>
+
+    <ag-grid-angular
+      class="ag-theme-alpine usuarios-grid"
+      [style.height]="tableHeight"
+      [rowData]="usuarios"
+      [columnDefs]="columnDefs"
+      [defaultColDef]="defaultColDef"
+      [gridOptions]="gridOptions"
+      (gridReady)="onGridReady($event)"
+      (gridSizeChanged)="onGridSizeChanged($event)"
+      [overlayNoRowsTemplate]="overlayNoRowsTemplate">
+    </ag-grid-angular>
+
+    <div class="pagination-bar">
+      <div class="pagination-size">
+        <label for="page-size">Mostrar</label>
+        <select id="page-size" [value]="size" (change)="cambiarTamano($event)">
+          <option [value]="10">10</option>
+          <option [value]="20">20</option>
+          <option [value]="50">50</option>
+          <option [value]="100">100</option>
+        </select>
+        <span>por página</span>
+      </div>
+      <span class="pagina-info">{{ paginaInfo }}</span>
+      <div class="pagination-controls" *ngIf="totalPages > 0">
+        <button class="page-btn" aria-label="Página anterior" (click)="prevPage()" [disabled]="page === 0">
+          <span class="material-symbols-outlined">chevron_left</span>
+        </button>
+        <button class="page-btn page-number" *ngFor="let p of pages"
+          [class.page-current]="p === page" [disabled]="p === '...'"
+          (click)="cambiarPagina(p)">{{ pageLabel(p) }}</button>
+        <button class="page-btn" aria-label="Página siguiente" (click)="nextPage()" [disabled]="page >= totalPages - 1">
+          <span class="material-symbols-outlined">chevron_right</span>
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ================================ -->
+<!-- MODAL FORMULARIO USUARIO         -->
+<!-- ================================ -->
+<div class="modal-backdrop" *ngIf="modalFormVisible" (click)="cerrarModal()">
+  <div class="modal-form-box" (click)="$event.stopPropagation()">
+
+    <!-- Header modal -->
+    <div class="modal-form-header">
+      <div class="modal-header-left">
+        <div class="modal-header-icon">
+          <span class="material-symbols-outlined filled">{{ modoEdicion ? 'manage_accounts' : 'person_add' }}</span>
+        </div>
+        <div>
+          <h2 class="modal-form-title">{{ modoEdicion ? 'Editar usuario' : 'Nuevo usuario' }}</h2>
+          <p class="modal-form-sub">{{ modoEdicion ? 'Modifica los datos del usuario' : 'Completa los datos para crear el usuario' }}</p>
+        </div>
+      </div>
+      <button class="modal-close-btn" (click)="cerrarModal()" type="button">
+        <span class="material-symbols-outlined">close</span>
+      </button>
+    </div>
+
+    <!-- Loading interno -->
+    <div class="modal-loading" *ngIf="loadingForm">
+      <span class="material-symbols-outlined spin">progress_activity</span>
+      <span>Cargando datos...</span>
+    </div>
+
+    <!-- Contenido del form -->
+    <div class="modal-form-body" *ngIf="!loadingForm">
+
+      <!-- Seccion datos personales -->
+      <div class="modal-section">
+        <div class="modal-section-title">
+          <span class="material-symbols-outlined">person</span>
+          <span>Datos personales</span>
+        </div>
+        <div class="fields-grid">
+          <div class="field">
+            <label class="field-label" for="m-nombres">Nombres <span class="req-mark">*</span></label>
+            <div class="input-wrapper">
+              <span class="material-symbols-outlined input-icon">badge</span>
+              <input id="m-nombres" type="text" class="input" placeholder="Ej: Juan Carlos"
+                [(ngModel)]="form.nombres" name="nombres" required />
+            </div>
+          </div>
+
+          <div class="field">
+            <label class="field-label" for="m-apellidos">Apellidos <span class="req-mark">*</span></label>
+            <div class="input-wrapper">
+              <span class="material-symbols-outlined input-icon">badge</span>
+              <input id="m-apellidos" type="text" class="input" placeholder="Ej: Gomez Perez"
+                [(ngModel)]="form.apellidos" name="apellidos" required />
+            </div>
+          </div>
+
+          <div class="field field-full">
+            <label class="field-label" for="m-correo">Correo electr&oacute;nico <span class="req-mark">*</span></label>
+            <div class="input-wrapper">
+              <span class="material-symbols-outlined input-icon">alternate_email</span>
+              <input id="m-correo" type="email" class="input" placeholder="usuario@qatrace.com"
+                [(ngModel)]="form.correo" name="correo" required />
+            </div>
+          </div>
+
+          <div class="field field-full">
+            <label class="field-label" for="m-password">
+              Contrase&ntilde;a
+              <span class="label-hint" *ngIf="modoEdicion">(dejar en blanco para no cambiar)</span>
+              <span class="req-mark" *ngIf="!modoEdicion">*</span>
+            </label>
+            <div class="input-wrapper">
+              <span class="material-symbols-outlined input-icon">key</span>
+              <input id="m-password" [type]="showPassword ? 'text' : 'password'"
+                class="input input-password-right" placeholder="M&iacute;nimo 8 caracteres"
+                [(ngModel)]="form.password" name="password" />
+              <button type="button" class="toggle-password" (click)="togglePassword()">
+                <span class="material-symbols-outlined">{{ showPassword ? 'visibility_off' : 'visibility' }}</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Seccion configuracion -->
+      <div class="modal-section">
+        <div class="modal-section-title">
+          <span class="material-symbols-outlined">tune</span>
+          <span>Configuraci&oacute;n de cuenta</span>
+        </div>
+        <div class="fields-grid">
+          <div class="field">
+            <label class="field-label" for="m-estado">Estado</label>
+            <div class="input-wrapper">
+              <span class="material-symbols-outlined input-icon">toggle_on</span>
+              <select id="m-estado" class="input input-select" [(ngModel)]="form.estado" name="estado">
+                <option value="ACTIVO">Activo</option>
+                <option value="INACTIVO">Inactivo</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="field">
+            <label class="field-label">Seguridad</label>
+            <div class="toggle-card">
+              <div class="toggle-row">
+                <div class="toggle-info">
+                  <span class="material-symbols-outlined toggle-ic">lock_reset</span>
+                  <div>
+                    <p class="toggle-name">Forzar cambio de contrase&ntilde;a</p>
+                    <p class="toggle-desc">El usuario deber&aacute; cambiarla al acceder</p>
+                  </div>
+                </div>
+                <label class="switch">
+                  <input type="checkbox" [(ngModel)]="form.debeCambiarPassword" name="debeCambiarPassword" />
+                  <span class="slider"></span>
+                </label>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Seccion roles -->
+      <div class="modal-section">
+        <div class="modal-section-title">
+          <span class="material-symbols-outlined">admin_panel_settings</span>
+          <span>Roles y permisos</span>
+        </div>
+        <div class="roles-grid">
+          <label class="role-card" *ngFor="let rol of roles"
+            [class.role-card-active]="tieneRol(rol.id)" (click)="toggleRol(rol.id)">
+            <div class="role-card-left">
+              <span class="material-symbols-outlined role-card-icon" [class.role-icon-active]="tieneRol(rol.id)">shield</span>
+              <div>
+                <p class="role-card-name">{{ rol.nombre }}</p>
+                <p class="role-card-desc" *ngIf="rol.descripcion">{{ rol.descripcion }}</p>
+              </div>
+            </div>
+            <span class="material-symbols-outlined filled role-check" [class.role-checked]="tieneRol(rol.id)">
+              {{ tieneRol(rol.id) ? 'check_circle' : 'radio_button_unchecked' }}
+            </span>
+          </label>
+
+          <div class="no-roles" *ngIf="roles.length === 0">
+            <span class="material-symbols-outlined">info</span>
+            <span>No hay roles disponibles</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Footer modal -->
+    <div class="modal-form-footer">
+      <button class="btn-ghost" (click)="cerrarModal()" type="button">Cancelar</button>
+      <button class="btn-primary-sm btn-save" (click)="guardar()" [disabled]="loading || !form.nombres || !form.apellidos || !form.correo">
+        <span class="material-symbols-outlined spin btn-icon" *ngIf="loading">progress_activity</span>
+        <span class="material-symbols-outlined filled btn-icon" *ngIf="!loading">{{ modoEdicion ? 'save' : 'person_add' }}</span>
+        <span>{{ loading ? 'Guardando...' : (modoEdicion ? 'Guardar cambios' : 'Crear usuario') }}</span>
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ================================ -->
+<!-- MODAL CONFIRMACION               -->
+<!-- ================================ -->
+<div class="modal-backdrop" *ngIf="modalConfirmVisible" (click)="modalConfirmVisible = false">
+  <div class="modal-box" (click)="$event.stopPropagation()">
+    <div class="modal-icon">
+      <span class="material-symbols-outlined filled">help</span>
+    </div>
+    <h2 class="modal-title">{{ modalTitulo }}</h2>
+    <p class="modal-msg">{{ modalMensaje }}</p>
+    <div class="modal-actions">
+      <button class="btn-ghost" (click)="modalConfirmVisible = false">Cancelar</button>
+      <button class="btn-primary-sm btn-confirm" (click)="ejecutarAccion()">Confirmar</button>
+    </div>
+  </div>
+</div>

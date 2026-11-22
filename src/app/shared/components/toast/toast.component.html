@@ -1,0 +1,26 @@
+<div class="toast-stack-container" *ngIf="(toasts$ | async) as toasts">
+  <div
+    *ngFor="let toast of toasts; trackBy: trackById"
+    class="toast-item"
+    [ngClass]="'toast-' + toast.type">
+    
+    <div class="toast-icon-wrap" [ngClass]="'icon-' + toast.type">
+      <span class="material-symbols-outlined">{{ getIcon(toast.type) }}</span>
+    </div>
+
+    <div class="toast-content">
+      <p class="toast-title">{{ toast.title }}</p>
+      <p class="toast-message" *ngIf="toast.message">{{ toast.message }}</p>
+    </div>
+
+    <button type="button" class="toast-close-btn" (click)="cerrar(toast.id)" title="Cerrar notificación">
+      <span class="material-symbols-outlined">close</span>
+    </button>
+
+    <!-- Barra de progreso de autodestrucción -->
+    <div class="toast-progress-track">
+      <div class="toast-progress-fill" [ngClass]="'progress-' + toast.type"></div>
+    </div>
+  </div>
+</div>
+

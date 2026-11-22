@@ -1,0 +1,672 @@
+<div class="page-shell">
+  <!-- Header -->
+  <div class="page-header">
+    <div>
+      <h1 class="page-title">Ejecución y Evidencias</h1>
+      <p class="page-subtitle">Registra resultados de pruebas, cronometra tiempos, administra ambientes y adjunta evidencias.</p>
+    </div>
+    <div class="header-actions">
+      <button class="btn-outline-sm" (click)="abrirModalAmbientes()">
+        <span class="material-symbols-outlined">dns</span> Ambientes
+      </button>
+      <button class="btn-outline-sm" (click)="abrirModalCiclos()">
+        <span class="material-symbols-outlined">restart_alt</span> Ciclos de prueba
+      </button>
+      <button class="btn-primary-sm" (click)="abrirModalEjecutar()">
+        <span class="material-symbols-outlined">play_arrow</span> Registrar ejecución
+      </button>
+    </div>
+  </div>
+
+  <!-- Barra de Filtros -->
+  <div class="filters-bar">
+    <div class="search-wrapper">
+      <span class="material-symbols-outlined search-icon">search</span>
+      <input
+        class="search-input"
+        placeholder="Buscar por código, nombre o hallazgos..."
+        [(ngModel)]="filtroBusqueda"
+        (keyup.enter)="aplicarFiltros()"
+      />
+    </div>
+
+    <app-select-search
+      [options]="opcionesProyectos()"
+      placeholder="Todos los proyectos"
+      [behaveAsSelect]="true"
+      [value]="toValue(filtroProyecto)"
+      (valueChange)="seleccionarProyectoFiltro($event)"
+     [allowClear]="true"></app-select-search>
+
+    <app-select-search
+      *ngIf="filtroProyecto"
+      [options]="opcionesCiclos()"
+      placeholder="Todos los ciclos"
+      [behaveAsSelect]="true"
+      [value]="toValue(filtroCiclo)"
+      (valueChange)="filtroCiclo = $event ? +$event : null; aplicarFiltros()"
+     [allowClear]="true"></app-select-search>
+
+    <app-select-search
+      [options]="opcionesAmbientes()"
+      placeholder="Todos los ambientes"
+      [behaveAsSelect]="true"
+      [value]="toValue(filtroAmbiente)"
+      (valueChange)="filtroAmbiente = $event ? +$event : null; aplicarFiltros()"
+     [allowClear]="true"></app-select-search>
+
+    <app-select-search
+      [options]="opcionesResultados()"
+      placeholder="Todos los resultados"
+      [behaveAsSelect]="true"
+      [value]="filtroResultado"
+      (valueChange)="filtroResultado = $event; aplicarFiltros()"
+     [allowClear]="true"></app-select-search>
+
+    <button class="btn-clear" (click)="limpiarFiltros()">
+      <span class="material-symbols-outlined">filter_alt_off</span> Limpiar
+    </button>
+  </div>
+
+  <!-- Contador de resultados -->
+  <div class="results-line">
+    <span><strong>{{ totalElements }}</strong> ejecuci{{ totalElements !== 1 ? 'ones' : 'ón' }}</span>
+    <span class="hint">Enter para buscar</span>
+  </div>
+
+  <!-- Error general -->
+  <div class="form-error page-error" *ngIf="error && !mostrarModalEjecutar">
+    <span class="material-symbols-outlined">error</span>{{ error }}
+  </div>
+
+  <!-- Tabla de Ejecuciones -->
+  <div class="table-card">
+    <div class="loading-overlay" *ngIf="cargando">
+      <span class="material-symbols-outlined spin">progress_activity</span>
+      <span>Cargando ejecuciones...</span>
+    </div>
+
+    <div class="table-responsive">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th style="width: 70px;"># Int.</th>
+            <th>Caso de prueba</th>
+            <th>Ambiente</th>
+            <th>Ciclo</th>
+            <th>Resultado</th>
+            <th>Tester & Duración</th>
+            <th>Fecha</th>
+            <th style="text-align: center;">Evidencias</th>
+            <th style="text-align: right;">Acciones</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let e of ejecuciones">
+            <td>
+              <span class="attempt-badge" title="Intento correlativo de ejecución">
+                #{{ e.numeroEjecucion }}
+              </span>
+            </td>
+            <td>
+              <div class="cell-primary">
+                <span class="code-tag">{{ e.casoCodigo }}</span>
+                <strong>{{ e.casoNombre }}</strong>
+              </div>
+              <div class="cell-sub" *ngIf="e.observaciones">
+                <span class="obs-snippet">{{ e.observaciones }}</span>
+              </div>
+            </td>
+            <td>
+              <span class="env-tag" *ngIf="e.ambienteNombre">
+                <span class="material-symbols-outlined env-icon">dns</span>
+                {{ e.ambienteNombre }}
+              </span>
+              <span class="muted" *ngIf="!e.ambienteNombre">-</span>
+            </td>
+            <td>
+              <span class="cycle-tag" *ngIf="e.cicloNombre">
+                {{ e.cicloNombre }}
+              </span>
+              <span class="muted" *ngIf="!e.cicloNombre">-</span>
+            </td>
+            <td>
+              <span class="status-badge" [ngClass]="getBadgeInfo(e.resultado).clase">
+                <span class="material-symbols-outlined badge-icon">
+                  {{ getBadgeInfo(e.resultado).icono }}
+                </span>
+                {{ getBadgeInfo(e.resultado).etiqueta }}
+              </span>
+            </td>
+            <td>
+              <div class="tester-info">
+                <span>{{ e.usuarioNombre || 'Sin tester' }}</span>
+                <span class="duration-chip" *ngIf="e.duracionSegundos">
+                  <span class="material-symbols-outlined">timer</span>
+                  {{ formatearDuracion(e.duracionSegundos) }}
+                </span>
+              </div>
+            </td>
+            <td>
+              <span class="date-text">{{ e.fechaEjecucion | date:'dd/MM/yyyy HH:mm' }}</span>
+            </td>
+            <td style="text-align: center;">
+              <button
+                class="evidence-btn"
+                [class.has-evidence]="e.evidencias && e.evidencias.length > 0"
+                (click)="abrirModalEvidencias(e)"
+                title="Ver o adjuntar evidencias"
+              >
+                <span class="material-symbols-outlined">attach_file</span>
+                <span>{{ e.evidencias ? e.evidencias.length : 0 }}</span>
+              </button>
+            </td>
+            <td style="text-align: right;">
+              <div class="actions-group">
+                <button
+                  class="action-icon-btn"
+                  (click)="abrirModalEjecutar(e)"
+                  title="Editar resultado"
+                >
+                  <span class="material-symbols-outlined">edit</span>
+                </button>
+                <button
+                  class="action-icon-btn retest-btn"
+                  (click)="abrirModalEjecutar(undefined, e.casoId)"
+                  title="Reejecutar caso (Retest)"
+                >
+                  <span class="material-symbols-outlined">replay</span>
+                </button>
+                <button
+                  class="action-icon-btn"
+                  (click)="abrirModalHistorial(e)"
+                  title="Historial de intentos"
+                >
+                  <span class="material-symbols-outlined">history</span>
+                </button>
+              </div>
+            </td>
+          </tr>
+          <tr *ngIf="!cargando && !ejecuciones.length">
+            <td colspan="9" class="empty-table">
+              <span class="material-symbols-outlined empty-icon">playlist_remove</span>
+              <p>No se encontraron ejecuciones registradas.</p>
+              <button class="btn-primary-sm" (click)="abrirModalEjecutar()">
+                Registrar primera ejecución
+              </button>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Paginación -->
+    <div class="pagination-bar">
+      <div class="pagination-size">
+        <label>Mostrar</label>
+        <select [value]="size" (change)="size = +$any($event.target).value; page = 0; cargarEjecuciones()">
+          <option [value]="10">10</option>
+          <option [value]="20">20</option>
+          <option [value]="50">50</option>
+        </select>
+        <span>por página</span>
+      </div>
+      <div class="pagination-info">
+        {{ totalElements ? page * size + 1 : 0 }} - {{ min((page + 1) * size, totalElements) }} de {{ totalElements }}
+      </div>
+      <div class="pagination-controls">
+        <button class="page-btn" [disabled]="page === 0" (click)="cambiarPagina(page - 1)">
+          <span class="material-symbols-outlined">chevron_left</span>
+        </button>
+        <button class="page-btn" [disabled]="page >= totalPages - 1 || !totalPages" (click)="cambiarPagina(page + 1)">
+          <span class="material-symbols-outlined">chevron_right</span>
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ================= MODAL: REGISTRAR / EDITAR EJECUCIÓN ================= -->
+<app-modal [isOpen]="mostrarModalEjecutar" [maxWidth]="'750px'" (close)="cerrarModalEjecutar()">
+  <div class="modal-form-box">
+    <div class="modal-form-header">
+      <div class="modal-header-left">
+        <div class="modal-header-icon">
+          <span class="material-symbols-outlined">play_circle</span>
+        </div>
+        <div>
+          <h2>{{ ejecucionEnEdicionId ? 'Editar ejecución' : 'Registrar ejecución de prueba' }}</h2>
+          <p>Valida los pasos del caso, cronometra la duración y califica el resultado</p>
+        </div>
+      </div>
+      <button class="modal-close-btn" type="button" (click)="cerrarModalEjecutar()">
+        <span class="material-symbols-outlined">close</span>
+      </button>
+    </div>
+
+    <div class="modal-form-body">
+      <div class="form-error" *ngIf="error">
+        <span class="material-symbols-outlined">error</span>{{ error }}
+      </div>
+
+      <!-- Sección Caso y Contexto -->
+      <div class="modal-section">
+        <div class="modal-section-title">
+          <span class="material-symbols-outlined">assignment</span>
+          <span>Caso de prueba y contexto</span>
+        </div>
+        <div class="form-grid">
+          <label class="col-span-2">
+            Caso de prueba *
+            <app-select-search
+              [options]="opcionesCasos()"
+              [value]="toValue(formEjecutar.casoId)"
+              placeholder="Selecciona el caso a ejecutar..."
+              [behaveAsSelect]="true"
+              (valueChange)="formEjecutar.casoId = +$event"
+            ></app-select-search>
+          </label>
+
+          <label>
+            Ambiente de prueba
+            <app-select-search
+              [options]="opcionesAmbientes()"
+              [value]="toValue(formEjecutar.ambienteId)"
+              placeholder="Selecciona ambiente"
+              [behaveAsSelect]="true"
+              (valueChange)="formEjecutar.ambienteId = $event ? +$event : null"
+            ></app-select-search>
+          </label>
+
+          <label>
+            Ciclo de prueba
+            <app-select-search
+              [options]="opcionesCiclos()"
+              [value]="toValue(formEjecutar.cicloId)"
+              placeholder="Opcional: ciclo"
+              [behaveAsSelect]="true"
+              (valueChange)="formEjecutar.cicloId = $event ? +$event : null"
+            ></app-select-search>
+          </label>
+        </div>
+      </div>
+
+      <!-- Sección Cronómetro y Calificación de Resultado -->
+      <div class="modal-section">
+        <div class="modal-section-title">
+          <span class="material-symbols-outlined">task_alt</span>
+          <span>Resultado de la ejecución</span>
+        </div>
+
+        <!-- Cronómetro de ejecución interactivo -->
+        <div class="timer-box">
+          <div class="timer-display">
+            <span class="material-symbols-outlined timer-icon">timer</span>
+            <span class="timer-digits">{{ formatearDuracion(formEjecutar.duracionSegundos) }}</span>
+          </div>
+          <div class="timer-actions">
+            <button
+              type="button"
+              class="btn-timer"
+              [class.btn-timer-running]="cronometroActivo"
+              (click)="toggleCronometro()"
+            >
+              <span class="material-symbols-outlined">
+                {{ cronometroActivo ? 'pause' : 'play_arrow' }}
+              </span>
+              {{ cronometroActivo ? 'Pausar' : 'Cronometrar' }}
+            </button>
+            <button
+              type="button"
+              class="btn-timer-reset"
+              (click)="resetearCronometro()"
+              title="Reiniciar a 0"
+            >
+              <span class="material-symbols-outlined">restart_alt</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Botones de selección de resultado rápido -->
+        <label style="margin-top: 12px; display: block; font-weight: 600;">Calificación *</label>
+        <div class="status-selector-grid">
+          <button
+            type="button"
+            *ngFor="let r of resultadosDisponibles"
+            class="status-choice-btn"
+            [ngClass]="[r.clase, formEjecutar.resultado === r.valor ? 'selected' : '']"
+            (click)="seleccionarResultado(r.valor)"
+          >
+            <span class="material-symbols-outlined">{{ r.icono }}</span>
+            <span>{{ r.etiqueta }}</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Observaciones / Hallazgos -->
+      <div class="modal-section">
+        <div class="modal-section-title">
+          <span class="material-symbols-outlined">edit_note</span>
+          <span>Observaciones / Pasos que fallaron</span>
+        </div>
+        <label class="full-label">
+          <textarea
+            [(ngModel)]="formEjecutar.observaciones"
+            rows="3"
+            placeholder="Anota comportamientos inesperados, datos específicos de la prueba o justificación del resultado..."
+          ></textarea>
+        </label>
+      </div>
+    </div>
+
+    <div class="modal-form-footer">
+      <button class="btn-ghost-lg" type="button" (click)="cerrarModalEjecutar()">Cancelar</button>
+      <button class="btn-primary-lg" type="button" [disabled]="guardando" (click)="guardarEjecucion()">
+        <span class="material-symbols-outlined">save</span>
+        {{ guardando ? 'Guardando...' : (ejecucionEnEdicionId ? 'Guardar cambios' : 'Finalizar y guardar') }}
+      </button>
+    </div>
+  </div>
+</app-modal>
+
+<!-- ================= MODAL: EVIDENCIAS ================= -->
+<app-modal [isOpen]="mostrarModalEvidencias" [maxWidth]="'700px'" (close)="cerrarModalEvidencias()">
+  <div class="modal-form-box">
+    <div class="modal-form-header">
+      <div class="modal-header-left">
+        <div class="modal-header-icon">
+          <span class="material-symbols-outlined">attachment</span>
+        </div>
+        <div>
+          <h2>Evidencias de ejecución</h2>
+          <p>{{ ejecucionSeleccionada?.casoCodigo }}: {{ ejecucionSeleccionada?.casoNombre }}</p>
+        </div>
+      </div>
+      <button class="modal-close-btn" type="button" (click)="cerrarModalEvidencias()">
+        <span class="material-symbols-outlined">close</span>
+      </button>
+    </div>
+
+    <div class="modal-form-body">
+      <!-- Carga de nueva evidencia -->
+      <div class="upload-zone">
+        <input
+          type="file"
+          id="fileEvidenciaInput"
+          style="display: none;"
+          (change)="seleccionarArchivo($event)"
+          accept=".png,.jpg,.jpeg,.pdf,.txt,.log,.json,.mp4"
+        />
+        <label for="fileEvidenciaInput" class="upload-box">
+          <span class="material-symbols-outlined upload-icon">cloud_upload</span>
+          <span class="upload-title">
+            {{ archivoEvidencia ? archivoEvidencia.name : 'Haz clic para seleccionar captura o log de soporte' }}
+          </span>
+          <span class="upload-hint">PNG, JPG, PDF, LOG, JSON o MP4 (Máximo 15 MB)</span>
+        </label>
+
+        <button
+          *ngIf="archivoEvidencia"
+          class="btn-primary-sm upload-confirm-btn"
+          [disabled]="subiendoArchivo"
+          (click)="subirEvidencia()"
+        >
+          <span class="material-symbols-outlined">upload</span>
+          {{ subiendoArchivo ? 'Subiendo...' : 'Confirmar subida' }}
+        </button>
+      </div>
+
+      <!-- Lista de evidencias adjuntas -->
+      <div class="evidence-list-container">
+        <h3>Archivos adjuntos ({{ evidencias.length }})</h3>
+        <div class="evidence-item" *ngFor="let ev of evidencias">
+          <div class="evidence-left">
+            <span class="material-symbols-outlined file-icon">description</span>
+            <div>
+              <strong>{{ ev.nombre }}</strong>
+              <div class="file-meta">
+                <span>{{ formatearTamano(ev.tamanoBytes) }}</span>
+                <span>·</span>
+                <span>{{ ev.fecha | date:'dd/MM/yyyy HH:mm' }}</span>
+              </div>
+            </div>
+          </div>
+          <button
+            class="action-icon-btn delete-btn"
+            (click)="eliminarEvidencia(ev)"
+            title="Eliminar evidencia"
+          >
+            <span class="material-symbols-outlined">delete</span>
+          </button>
+        </div>
+
+        <div class="empty-evidence" *ngIf="!evidencias.length">
+          <span class="material-symbols-outlined">folder_off</span>
+          <p>No se han adjuntado evidencias a esta ejecución.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal-form-footer">
+      <button class="btn-ghost-lg" type="button" (click)="cerrarModalEvidencias()">Cerrar</button>
+    </div>
+  </div>
+</app-modal>
+
+<!-- ================= MODAL: HISTORIAL DE INTENTOS ================= -->
+<app-modal [isOpen]="mostrarModalHistorial" [maxWidth]="'680px'" (close)="cerrarModalHistorial()">
+  <div class="modal-form-box">
+    <div class="modal-form-header">
+      <div class="modal-header-left">
+        <div class="modal-header-icon">
+          <span class="material-symbols-outlined">history</span>
+        </div>
+        <div>
+          <h2>Historial de ejecuciones (Retest)</h2>
+          <p>{{ casoHistorialNombre }}</p>
+        </div>
+      </div>
+      <button class="modal-close-btn" type="button" (click)="cerrarModalHistorial()">
+        <span class="material-symbols-outlined">close</span>
+      </button>
+    </div>
+
+    <div class="modal-form-body">
+      <div class="history-timeline">
+        <div class="history-card" *ngFor="let h of historial">
+          <div class="history-top">
+            <span class="attempt-badge">Intento #{{ h.numeroEjecucion }}</span>
+            <span class="status-badge" [ngClass]="getBadgeInfo(h.resultado).clase">
+              <span class="material-symbols-outlined badge-icon">{{ getBadgeInfo(h.resultado).icono }}</span>
+              {{ getBadgeInfo(h.resultado).etiqueta }}
+            </span>
+            <span class="history-date">{{ h.fechaEjecucion | date:'dd/MM/yyyy HH:mm' }}</span>
+          </div>
+          <div class="history-meta">
+            <span><strong>Tester:</strong> {{ h.usuarioNombre || 'Sin asignar' }}</span>
+            <span *ngIf="h.ambienteNombre">· <strong>Ambiente:</strong> {{ h.ambienteNombre }}</span>
+            <span *ngIf="h.duracionSegundos">· <strong>Duración:</strong> {{ formatearDuracion(h.duracionSegundos) }}</span>
+          </div>
+          <p class="history-obs" *ngIf="h.observaciones">
+            <em>"{{ h.observaciones }}"</em>
+          </p>
+        </div>
+
+        <div class="empty-history" *ngIf="!historial.length">
+          No hay historial previo registrado para este caso.
+        </div>
+      </div>
+    </div>
+
+    <div class="modal-form-footer">
+      <button class="btn-ghost-lg" type="button" (click)="cerrarModalHistorial()">Cerrar</button>
+    </div>
+  </div>
+</app-modal>
+
+<!-- ================= MODAL: CATÁLOGO DE AMBIENTES ================= -->
+<app-modal [isOpen]="mostrarModalAmbientes" [maxWidth]="'700px'" (close)="cerrarModalAmbientes()">
+  <div class="modal-form-box">
+    <div class="modal-form-header">
+      <div class="modal-header-left">
+        <div class="modal-header-icon">
+          <span class="material-symbols-outlined">dns</span>
+        </div>
+        <div>
+          <h2>Catálogo de ambientes de prueba</h2>
+          <p>Administra los entornos donde se ejecutan las validaciones (RQ-MOD06-05)</p>
+        </div>
+      </div>
+      <button class="modal-close-btn" type="button" (click)="cerrarModalAmbientes()">
+        <span class="material-symbols-outlined">close</span>
+      </button>
+    </div>
+
+    <div class="modal-form-body">
+      <!-- Formulario para agregar -->
+      <div class="mini-form-card">
+        <h4>Agregar nuevo ambiente</h4>
+        <div class="form-grid">
+          <label>
+            Nombre del ambiente *
+            <input [(ngModel)]="ambienteForm.nombre" placeholder="Ej. UAT, Staging, QA-2" />
+          </label>
+          <label>
+            URL del servidor
+            <input [(ngModel)]="ambienteForm.urlServidor" placeholder="https://qa.dominio.com" />
+          </label>
+          <label class="col-span-2">
+            Descripción
+            <input [(ngModel)]="ambienteForm.descripcion" placeholder="Detalles de este entorno..." />
+          </label>
+        </div>
+        <button
+          class="btn-primary-sm"
+          style="margin-top: 10px;"
+          [disabled]="guardandoAmbiente"
+          (click)="guardarAmbiente()"
+        >
+          <span class="material-symbols-outlined">add</span>
+          {{ guardandoAmbiente ? 'Guardando...' : 'Crear ambiente' }}
+        </button>
+      </div>
+
+      <!-- Lista de ambientes -->
+      <div class="table-responsive" style="margin-top: 16px;">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Nombre</th>
+              <th>Descripción</th>
+              <th>URL</th>
+              <th>Estado</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let amb of ambientes">
+              <td><strong>{{ amb.nombre }}</strong></td>
+              <td>{{ amb.descripcion || '-' }}</td>
+              <td><code>{{ amb.urlServidor || '-' }}</code></td>
+              <td>
+                <span class="badge-aprobado" *ngIf="amb.estado === 'ACTIVO'">Activo</span>
+                <span class="badge-fallido" *ngIf="amb.estado !== 'ACTIVO'">Inactivo</span>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="modal-form-footer">
+      <button class="btn-ghost-lg" type="button" (click)="cerrarModalAmbientes()">Cerrar</button>
+    </div>
+  </div>
+</app-modal>
+
+<!-- ================= MODAL: CICLOS DE PRUEBA ================= -->
+<app-modal [isOpen]="mostrarModalCiclos" [maxWidth]="'700px'" (close)="cerrarModalCiclos()">
+  <div class="modal-form-box">
+    <div class="modal-form-header">
+      <div class="modal-header-left">
+        <div class="modal-header-icon">
+          <span class="material-symbols-outlined">restart_alt</span>
+        </div>
+        <div>
+          <h2>Ciclos de prueba</h2>
+          <p>Planifica y agrupa ejecuciones por iteración o sprint (RQ-MOD06-06)</p>
+        </div>
+      </div>
+      <button class="modal-close-btn" type="button" (click)="cerrarModalCiclos()">
+        <span class="material-symbols-outlined">close</span>
+      </button>
+    </div>
+
+    <div class="modal-form-body">
+      <!-- Formulario para agregar -->
+      <div class="mini-form-card">
+        <h4>Nuevo ciclo de prueba</h4>
+        <div class="form-grid">
+          <label>
+            Proyecto *
+            <app-select-search
+              [options]="opcionesProyectos()"
+              [value]="toValue(cicloForm.proyectoId)"
+              placeholder="Selecciona proyecto"
+              [behaveAsSelect]="true"
+              (valueChange)="cicloForm.proyectoId = +$event"
+            ></app-select-search>
+          </label>
+          <label>
+            Nombre del ciclo *
+            <input [(ngModel)]="cicloForm.nombre" placeholder="Ej. Sprint 4 - Smoke Test" />
+          </label>
+          <label class="col-span-2">
+            Descripción
+            <input [(ngModel)]="cicloForm.descripcion" placeholder="Objetivo de este ciclo de prueba..." />
+          </label>
+        </div>
+        <button
+          class="btn-primary-sm"
+          style="margin-top: 10px;"
+          [disabled]="guardandoCiclo"
+          (click)="guardarCiclo()"
+        >
+          <span class="material-symbols-outlined">add</span>
+          {{ guardandoCiclo ? 'Guardando...' : 'Crear ciclo' }}
+        </button>
+      </div>
+
+      <!-- Lista de ciclos -->
+      <div class="table-responsive" style="margin-top: 16px;">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Nombre</th>
+              <th>Descripción</th>
+              <th>Estado</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let c of ciclos">
+              <td><strong>{{ c.nombre }}</strong></td>
+              <td>{{ c.descripcion || '-' }}</td>
+              <td>
+                <span class="status-badge badge-en-ejecucion">{{ c.estado }}</span>
+              </td>
+            </tr>
+            <tr *ngIf="!ciclos.length">
+              <td colspan="3" class="muted" style="text-align: center; padding: 16px;">
+                Selecciona un proyecto con ciclos en los filtros para verlos aquí.
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="modal-form-footer">
+      <button class="btn-ghost-lg" type="button" (click)="cerrarModalCiclos()">Cerrar</button>
+    </div>
+  </div>
+</app-modal>
+

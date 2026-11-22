@@ -1,0 +1,610 @@
+<div class="page-shell">
+  <!-- BREADCRUMB & HEADER -->
+  <section class="header-section">
+    <!-- Breadcrumb -->
+    <nav class="breadcrumb-nav">
+      <span class="material-symbols-outlined breadcrumb-icon">home</span>
+      <span>Inicio</span>
+      <span class="material-symbols-outlined breadcrumb-separator">chevron_right</span>
+      <span>Proyectos</span>
+      <span class="material-symbols-outlined breadcrumb-separator">chevron_right</span>
+      <span class="breadcrumb-project">{{ dashboard?.proyectoNombre || 'Seleccione un proyecto' }}</span>
+      <span class="material-symbols-outlined breadcrumb-separator">chevron_right</span>
+      <span class="breadcrumb-current">Reportes y Métricas</span>
+    </nav>
+
+    <!-- Main Title -->
+    <div class="title-row">
+      <div class="title-col">
+        <div class="title-with-tags">
+          <h1 class="main-title">Dashboard de Calidad y Métricas de Release</h1>
+        </div>
+        <p class="subtitle-text">
+          Indicadores consolidados de salud de software, estabilidad de pruebas, SLA de resolución de defectos y verificación formal para paso a UAT / Producción.
+        </p>
+      </div>
+
+      <!-- Action Buttons -->
+      <div class="action-buttons-group">
+        <button class="btn-secondary" type="button" (click)="exportarCsv()" [disabled]="exportando || !filtroProyecto">
+          <span class="material-symbols-outlined">table_view</span>
+          <span>{{ exportando ? 'Exportando...' : 'Exportar CSV' }}</span>
+        </button>
+        <button class="btn-primary" type="button" (click)="descargarReportePdf()" [disabled]="!dashboard">
+          <span class="material-symbols-outlined">picture_as_pdf</span>
+          <span>Informe Ejecutivo PDF</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Filter Control Ribbon -->
+    <div class="filter-ribbon">
+      <div class="filters-left">
+        <!-- Project Selector -->
+        <div class="filter-item project-filter">
+          <span class="filter-label">Proyecto Activo</span>
+          <app-select-search
+            [options]="opcionesProyectos()"
+            placeholder="Selecciona un proyecto..."
+            [behaveAsSelect]="true"
+            [value]="toValue(filtroProyecto)"
+            (valueChange)="seleccionarProyecto($event)"
+          ></app-select-search>
+        </div>
+
+        <!-- Date / Cycle Range -->
+        <div class="filter-item date-filter">
+          <span class="filter-label">Rango de Ciclo / Fechas</span>
+          <div class="select-container">
+            <span class="material-symbols-outlined select-icon">date_range</span>
+            <select class="custom-select" [(ngModel)]="filtroRango" (change)="cargarDashboard()">
+              <option value="SPRINT_ACTUAL">Último Sprint Activo (14 días)</option>
+              <option value="MES_ACTUAL">Mes Calendario Actual</option>
+              <option value="TRIMESTRE_Q1">Trimestre Acumulado</option>
+            </select>
+            <span class="material-symbols-outlined select-arrow">expand_more</span>
+          </div>
+        </div>
+
+        <!-- Environment -->
+        <div class="filter-item env-filter">
+          <span class="filter-label">Entorno / Ambiente</span>
+          <div class="select-container">
+            <span class="material-symbols-outlined select-icon">dns</span>
+            <select class="custom-select" [(ngModel)]="filtroAmbiente" (change)="cargarDashboard()">
+              <option value="TODOS">Todos los entornos</option>
+              <option value="STAGING">Staging &amp; UAT</option>
+              <option value="TESTING">Testing / QA</option>
+              <option value="PREPROD">Pre-Producción</option>
+            </select>
+            <span class="material-symbols-outlined select-arrow">expand_more</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Sync Status & Refresh -->
+      <div class="sync-status">
+        <span class="sync-dot"></span>
+        <span *ngIf="dashboard">Sincronizado: {{ dashboard.fechaSincronizacion | date:'HH:mm:ss' }}</span>
+        <span *ngIf="!dashboard">Sin sincronizar</span>
+        <button class="btn-icon" (click)="refrescar()" title="Refrescar métricas">
+          <span class="material-symbols-outlined" [class.spinning]="cargando">sync</span>
+        </button>
+      </div>
+    </div>
+  </section>
+
+  <!-- LOADING / ERROR -->
+  <div *ngIf="cargando" class="loading-state">
+    <div class="spinner"></div>
+    <p>Calculando analítica y métricas del proyecto...</p>
+  </div>
+
+  <div *ngIf="error" class="error-banner">
+    <span class="material-symbols-outlined">error</span>
+    <span>{{ error }}</span>
+  </div>
+
+  <ng-container *ngIf="dashboard && !cargando">
+    <!-- ROW 2: EXECUTIVE KPIS -->
+    <section class="kpi-section">
+      <!-- KPI 1: Cobertura de Requerimientos -->
+      <div class="kpi-card">
+        <div class="kpi-header">
+          <div class="kpi-title-col">
+            <span class="kpi-category">Cobertura de Requerimientos</span>
+            <span class="kpi-main-val">{{ dashboard.kpis.coberturaReqPct }}%</span>
+          </div>
+          <div class="kpi-icon-circle bg-primary-soft text-primary">
+            <span class="material-symbols-outlined">policy</span>
+          </div>
+        </div>
+        <div class="kpi-progress-col">
+          <div class="progress-track">
+            <div
+              class="progress-fill"
+              [style.width.%]="dashboard.kpis.coberturaReqPct"
+              [class.bg-emerald]="dashboard.kpis.coberturaReqPct >= 90"
+              [class.bg-warning]="dashboard.kpis.coberturaReqPct < 90 && dashboard.kpis.coberturaReqPct >= 75"
+              [class.bg-danger]="dashboard.kpis.coberturaReqPct < 75"
+            ></div>
+          </div>
+          <div class="progress-subtext">
+            <span>{{ dashboard.kpis.reqsConCobertura }} de {{ dashboard.kpis.totalRequerimientos }} Req. con casos</span>
+            <span class="trend-badge text-emerald" *ngIf="dashboard.kpis.coberturaCumpleMeta">
+              <span class="material-symbols-outlined">trending_up</span> Meta &gt; 90%
+            </span>
+          </div>
+        </div>
+        <div class="kpi-footer">
+          <span>Meta institucional: &gt; 90.0%</span>
+          <span
+            class="pill-status"
+            [class.pill-success]="dashboard.kpis.coberturaCumpleMeta"
+            [class.pill-danger]="!dashboard.kpis.coberturaCumpleMeta"
+          >
+            {{ dashboard.kpis.coberturaCumpleMeta ? 'CUMPLE' : 'NO CUMPLE' }}
+          </span>
+        </div>
+      </div>
+
+      <!-- KPI 2: Pass Rate -->
+      <div class="kpi-card">
+        <div class="kpi-header">
+          <div class="kpi-title-col">
+            <span class="kpi-category">Tasa de Éxito (Pass Rate)</span>
+            <span class="kpi-main-val">{{ dashboard.kpis.passRatePct }}%</span>
+          </div>
+          <div class="kpi-icon-circle bg-emerald-soft text-emerald">
+            <span class="material-symbols-outlined">verified</span>
+          </div>
+        </div>
+        <div class="kpi-progress-col">
+          <div class="progress-track stacked-track">
+            <div
+              class="segment bg-emerald"
+              [style.width.%]="dashboard.kpis.totalEjecuciones > 0 ? (dashboard.kpis.ejecucionesPassed * 100 / dashboard.kpis.totalEjecuciones) : 0"
+              title="Aprobadas"
+            ></div>
+            <div
+              class="segment bg-danger"
+              [style.width.%]="dashboard.kpis.totalEjecuciones > 0 ? (dashboard.kpis.ejecucionesFailed * 100 / dashboard.kpis.totalEjecuciones) : 0"
+              title="Fallidas"
+            ></div>
+            <div
+              class="segment bg-warning"
+              [style.width.%]="dashboard.kpis.totalEjecuciones > 0 ? (dashboard.kpis.ejecucionesBlocked * 100 / dashboard.kpis.totalEjecuciones) : 0"
+              title="Bloqueadas"
+            ></div>
+          </div>
+          <div class="kpi-segments-legend">
+            <span class="seg-item text-emerald">
+              <span class="dot bg-emerald"></span> {{ dashboard.kpis.ejecucionesPassed }} Pass
+            </span>
+            <span class="seg-item text-danger">
+              <span class="dot bg-danger"></span> {{ dashboard.kpis.ejecucionesFailed }} Fail
+            </span>
+            <span class="seg-item text-warning">
+              <span class="dot bg-warning"></span> {{ dashboard.kpis.ejecucionesBlocked }} Block
+            </span>
+          </div>
+        </div>
+        <div class="kpi-footer">
+          <span>{{ dashboard.kpis.totalEjecuciones }} ejecuciones en total</span>
+          <span class="text-primary font-semibold">Ciclo QA Activo</span>
+        </div>
+      </div>
+
+      <!-- KPI 3: Defectos Activos -->
+      <div class="kpi-card">
+        <div class="kpi-header">
+          <div class="kpi-title-col">
+            <span class="kpi-category">Defectos Abiertos</span>
+            <div class="val-with-badge">
+              <span class="kpi-main-val">{{ dashboard.kpis.defectosAbiertos }}</span>
+              <span
+                class="badge-alert"
+                [class.badge-danger]="dashboard.kpis.defectosCriticos > 0"
+                [class.badge-neutral]="dashboard.kpis.defectosCriticos === 0"
+              >
+                {{ dashboard.kpis.defectosCriticos > 0 ? 'Alerta Crítica P0' : 'Bajo Control' }}
+              </span>
+            </div>
+          </div>
+          <div class="kpi-icon-circle bg-danger-soft text-danger">
+            <span class="material-symbols-outlined">bug_report</span>
+          </div>
+        </div>
+        <div class="defect-mini-grid">
+          <div class="mini-box bg-rose-box">
+            <span class="mini-num text-danger">{{ dashboard.kpis.defectosCriticos }}</span>
+            <span class="mini-label text-danger">Blocker</span>
+          </div>
+          <div class="mini-box bg-orange-box">
+            <span class="mini-num text-orange">{{ dashboard.kpis.defectosMayores }}</span>
+            <span class="mini-label text-orange">Mayor</span>
+          </div>
+          <div class="mini-box bg-blue-box">
+            <span class="mini-num text-primary">{{ dashboard.kpis.defectosMenores }}</span>
+            <span class="mini-label text-primary">Menor</span>
+          </div>
+          <div class="mini-box bg-slate-box">
+            <span class="mini-num text-secondary">{{ dashboard.kpis.defectosTriviales }}</span>
+            <span class="mini-label text-secondary">Trivial</span>
+          </div>
+        </div>
+        <div class="kpi-footer">
+          <span>{{ dashboard.kpis.defectosResueltos }} resueltos en ciclo</span>
+          <span class="text-danger font-semibold">{{ dashboard.kpis.defectosCriticos }} Bloqueantes P0</span>
+        </div>
+      </div>
+
+      <!-- KPI 4: MTTR -->
+      <div class="kpi-card">
+        <div class="kpi-header">
+          <div class="kpi-title-col">
+            <span class="kpi-category">MTTR (Tiempo Resolución)</span>
+            <span class="kpi-main-val">{{ dashboard.kpis.mttrHoras }} h</span>
+          </div>
+          <div class="kpi-icon-circle bg-purple-soft text-purple">
+            <span class="material-symbols-outlined">timer</span>
+          </div>
+        </div>
+        <div class="kpi-progress-col">
+          <div class="progress-track">
+            <div
+              class="progress-fill bg-primary"
+              [style.width.%]="Math.min(100, (dashboard.kpis.mttrHoras / 24.0) * 100)"
+            ></div>
+          </div>
+          <div class="progress-subtext">
+            <span>Meta interna &lt; 24.0h</span>
+            <span class="trend-badge text-emerald">
+              <span class="material-symbols-outlined">check_circle</span> SLA {{ dashboard.kpis.cumplimientoSlaPct }}%
+            </span>
+          </div>
+        </div>
+        <div class="kpi-footer">
+          <span>Cumplimiento SLA: {{ dashboard.kpis.cumplimientoSlaPct }}%</span>
+          <span
+            class="pill-status"
+            [class.pill-success]="dashboard.kpis.slaEstado === 'EN SLA'"
+            [class.pill-danger]="dashboard.kpis.slaEstado !== 'EN SLA'"
+          >
+            {{ dashboard.kpis.slaEstado }}
+          </span>
+        </div>
+      </div>
+    </section>
+
+    <!-- ROW 3: CENTRAL SECTION (CHARTS & ANALYTICS) -->
+    <section class="charts-section">
+      <!-- LEFT: DAILY EXECUTION & QUALITY TREND (8 COLUMNS) -->
+      <div class="chart-panel trend-panel">
+        <div class="panel-header">
+          <div>
+            <h2 class="panel-title">Tendencia de Ejecución Diaria y Calidad</h2>
+            <span class="panel-subtitle">Volumen diario de casos ejecutados, aprobaciones y estabilidad acumulada (14 días)</span>
+          </div>
+          <div
+            class="gate-pill"
+            [class.gate-pass]="dashboard.certificacion.aptoUat"
+            [class.gate-fail]="!dashboard.certificacion.aptoUat"
+          >
+            <span class="gate-dot"></span>
+            <span class="gate-text">{{ dashboard.certificacion.estadoCertificacion }}</span>
+          </div>
+        </div>
+
+        <!-- SVG Trend Chart -->
+        <div class="chart-canvas-box">
+          <div class="chart-y-axis">
+            <span>{{ getMaxCasosDia() }} casos/d</span>
+            <span>{{ Math.round(getMaxCasosDia() * 0.75) }} casos/d</span>
+            <span>{{ Math.round(getMaxCasosDia() * 0.5) }} casos/d</span>
+            <span>{{ Math.round(getMaxCasosDia() * 0.25) }} casos/d</span>
+            <span>0 casos</span>
+          </div>
+
+          <svg class="trend-svg" viewBox="0 0 700 180" preserveAspectRatio="none">
+            <!-- Grid Lines -->
+            <line x1="0" y1="30" x2="700" y2="30" stroke="#E2E8F0" stroke-dasharray="4 4" stroke-width="1"></line>
+            <line x1="0" y1="65" x2="700" y2="65" stroke="#E2E8F0" stroke-dasharray="4 4" stroke-width="1"></line>
+            <line x1="0" y1="100" x2="700" y2="100" stroke="#E2E8F0" stroke-dasharray="4 4" stroke-width="1"></line>
+            <line x1="0" y1="130" x2="700" y2="130" stroke="#E2E8F0" stroke-dasharray="4 4" stroke-width="1"></line>
+            <line x1="0" y1="160" x2="700" y2="160" stroke="#CBD5E1" stroke-width="1.5"></line>
+
+            <!-- Dynamic Daily Bars -->
+            <g *ngFor="let dia of dashboard.tendencia; let i = index">
+              <!-- Bar Passed -->
+              <rect
+                [attr.x]="25 + (i * 46)"
+                [attr.y]="calcularBarY(calcularBarHeight(dia.aprobadas, getMaxCasosDia()))"
+                width="14"
+                [attr.height]="calcularBarHeight(dia.aprobadas, getMaxCasosDia())"
+                rx="3"
+                fill="#2563EB"
+                opacity="0.9"
+              >
+                <title>{{ dia.diaEtiqueta }}: {{ dia.aprobadas }} Aprobadas</title>
+              </rect>
+
+              <!-- Bar Failed -->
+              <rect
+                [attr.x]="41 + (i * 46)"
+                [attr.y]="calcularBarY(calcularBarHeight(dia.fallidas, getMaxCasosDia()))"
+                width="10"
+                [attr.height]="calcularBarHeight(dia.fallidas, getMaxCasosDia())"
+                rx="2"
+                fill="#EF4444"
+                opacity="0.9"
+              >
+                <title>{{ dia.diaEtiqueta }}: {{ dia.fallidas }} Fallidas</title>
+              </rect>
+            </g>
+
+            <!-- Stability Cumulative Curve -->
+            <path
+              [attr.d]="getCurvaTendencia()"
+              fill="none"
+              stroke="#004AC6"
+              stroke-width="3"
+              stroke-linecap="round"
+            ></path>
+            <circle
+              [attr.cx]="getUltimoPuntoCurva().cx"
+              [attr.cy]="getUltimoPuntoCurva().cy"
+              r="5"
+              fill="#004AC6"
+            ></circle>
+          </svg>
+
+          <!-- X Axis Dates -->
+          <div class="chart-x-axis">
+            <span *ngFor="let dia of dashboard.tendencia; let last = last" [class.font-bold]="last">
+              {{ dia.diaEtiqueta }}
+            </span>
+          </div>
+        </div>
+
+        <!-- Legend and Stability Footer -->
+        <div class="chart-legend-footer">
+          <div class="legend-items">
+            <span class="legend-chip"><span class="chip-color bg-primary"></span> Aprobadas (Passed)</span>
+            <span class="legend-chip"><span class="chip-color bg-danger"></span> Fallidas (Failed)</span>
+            <span class="legend-chip"><span class="chip-line bg-dark-blue"></span> Estabilidad acumulada</span>
+          </div>
+          <div class="regression-text">
+            Tasa acumulada de regresión:
+            <strong [class.text-danger]="dashboard.certificacion.tasaRegresionPct > 5">
+              {{ dashboard.certificacion.tasaRegresionPct }}% (Umbral máx. 5%)
+            </strong>
+          </div>
+        </div>
+      </div>
+
+      <!-- RIGHT: DEFECT DISTRIBUTION & WORKFLOW (4 COLUMNS) -->
+      <div class="chart-panel donut-panel">
+        <div class="panel-header">
+          <div>
+            <h2 class="panel-title">Distribución de Incidencias</h2>
+            <span class="panel-subtitle">Severidad P0-P3 &amp; Flujo de Triage</span>
+          </div>
+          <span class="badge-active-bugs">{{ dashboard.distribucionIncidencias.totalActivas }} Activas</span>
+        </div>
+
+        <!-- Donut Visual + Mini Matrix Breakdown -->
+        <div class="donut-matrix-row">
+          <div class="donut-container">
+            <svg class="donut-svg" viewBox="0 0 36 36">
+              <!-- Background Ring -->
+              <path
+                class="donut-bg"
+                d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                fill="none"
+                stroke="#E2E8F0"
+                stroke-width="4.5"
+              ></path>
+              <!-- Critical P0 -->
+              <path
+                d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                fill="none"
+                stroke="#EF4444"
+                [attr.stroke-dasharray]="dashboard.distribucionIncidencias.pctCritica + ', 100'"
+                stroke-linecap="round"
+                stroke-width="4.5"
+              ></path>
+              <!-- Major P1 -->
+              <path
+                d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                fill="none"
+                stroke="#F97316"
+                [attr.stroke-dasharray]="dashboard.distribucionIncidencias.pctMayor + ', 100'"
+                [attr.stroke-dashoffset]="-dashboard.distribucionIncidencias.pctCritica"
+                stroke-linecap="round"
+                stroke-width="4.5"
+              ></path>
+              <!-- Minor P2 -->
+              <path
+                d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                fill="none"
+                stroke="#2563EB"
+                [attr.stroke-dasharray]="dashboard.distribucionIncidencias.pctMenor + ', 100'"
+                [attr.stroke-dashoffset]="-(dashboard.distribucionIncidencias.pctCritica + dashboard.distribucionIncidencias.pctMayor)"
+                stroke-linecap="round"
+                stroke-width="4.5"
+              ></path>
+              <!-- Trivial P3 -->
+              <path
+                d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                fill="none"
+                stroke="#94A3B8"
+                [attr.stroke-dasharray]="dashboard.distribucionIncidencias.pctTrivial + ', 100'"
+                [attr.stroke-dashoffset]="-(dashboard.distribucionIncidencias.pctCritica + dashboard.distribucionIncidencias.pctMayor + dashboard.distribucionIncidencias.pctMenor)"
+                stroke-linecap="round"
+                stroke-width="4.5"
+              ></path>
+            </svg>
+            <div class="donut-center-label">
+              <span class="donut-center-number">{{ dashboard.distribucionIncidencias.totalActivas }}</span>
+              <span class="donut-center-sub">Total</span>
+            </div>
+          </div>
+
+          <div class="severity-breakdown">
+            <div class="sev-row">
+              <span class="sev-name"><span class="dot bg-danger"></span> P0 Crítica</span>
+              <span class="sev-val text-danger">{{ dashboard.distribucionIncidencias.critica }} ({{ dashboard.distribucionIncidencias.pctCritica }}%)</span>
+            </div>
+            <div class="sev-row">
+              <span class="sev-name"><span class="dot bg-orange"></span> P1 Mayor</span>
+              <span class="sev-val text-orange">{{ dashboard.distribucionIncidencias.mayor }} ({{ dashboard.distribucionIncidencias.pctMayor }}%)</span>
+            </div>
+            <div class="sev-row">
+              <span class="sev-name"><span class="dot bg-primary"></span> P2 Menor</span>
+              <span class="sev-val text-primary">{{ dashboard.distribucionIncidencias.menor }} ({{ dashboard.distribucionIncidencias.pctMenor }}%)</span>
+            </div>
+            <div class="sev-row">
+              <span class="sev-name"><span class="dot bg-slate"></span> P3 Trivial</span>
+              <span class="sev-val text-secondary">{{ dashboard.distribucionIncidencias.trivial }} ({{ dashboard.distribucionIncidencias.pctTrivial }}%)</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Workflow States -->
+        <div class="workflow-state-list">
+          <span class="workflow-title">Estado del Flujo de Trabajo</span>
+          <div class="workflow-item">
+            <span class="item-name"><span class="material-symbols-outlined text-primary">new_releases</span> Nuevas registradas</span>
+            <span class="item-val text-primary font-mono">{{ dashboard.distribucionIncidencias.nuevas }}</span>
+          </div>
+          <div class="workflow-item">
+            <span class="item-name"><span class="material-symbols-outlined text-warning">psychology</span> En Análisis QA</span>
+            <span class="item-val text-warning font-mono">{{ dashboard.distribucionIncidencias.enAnalisis }}</span>
+          </div>
+          <div class="workflow-item">
+            <span class="item-name"><span class="material-symbols-outlined text-orange">handyman</span> En Corrección DEV</span>
+            <span class="item-val text-orange font-mono">{{ dashboard.distribucionIncidencias.enCorreccion }}</span>
+          </div>
+          <div class="workflow-item">
+            <span class="item-name"><span class="material-symbols-outlined text-purple">replay</span> En Retest QA</span>
+            <span class="item-val text-purple font-mono">{{ dashboard.distribucionIncidencias.enRetest }}</span>
+          </div>
+          <div class="workflow-item bg-emerald-light">
+            <span class="item-name text-emerald"><span class="material-symbols-outlined text-emerald">check_circle</span> Cerradas &amp; Verificadas</span>
+            <span class="item-val text-emerald font-mono">{{ dashboard.distribucionIncidencias.cerradas }}</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ROW 4: PRODUCTIVITY & TEAM PERFORMANCE -->
+    <section class="productivity-section">
+      <!-- QA Productivity -->
+      <div class="prod-panel">
+        <div class="panel-header">
+          <div class="panel-title-with-icon">
+            <div class="icon-avatar bg-primary-soft text-primary">
+              <span class="material-symbols-outlined">engineering</span>
+            </div>
+            <div>
+              <h3 class="panel-title">Productividad del Equipo de QA</h3>
+              <span class="panel-subtitle">Diseño, ejecución y DDR (Defect Detection Rate)</span>
+            </div>
+          </div>
+          <span class="badge-counter">{{ dashboard.equipoQa.length }} Testers</span>
+        </div>
+
+        <div class="table-scroll">
+          <table class="prod-table">
+            <thead>
+              <tr>
+                <th>Especialista QA</th>
+                <th class="text-center">Diseñados</th>
+                <th class="text-center">Ejecutados</th>
+                <th class="text-center">DDR %</th>
+                <th class="text-right">Horas Test</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let qa of dashboard.equipoQa">
+                <td>
+                  <div class="user-chip">
+                    <div class="user-avatar bg-blue-100 text-blue-700">{{ qa.iniciales }}</div>
+                    <div class="user-info">
+                      <span class="user-name">{{ qa.testerNombre }}</span>
+                      <span class="user-role">{{ qa.rol }}</span>
+                    </div>
+                  </div>
+                </td>
+                <td class="text-center font-mono">{{ qa.casosDisenados }}</td>
+                <td class="text-center font-mono font-bold text-primary">{{ qa.casosEjecutados }}</td>
+                <td class="text-center">
+                  <span class="pill-metric bg-emerald-light text-emerald">{{ qa.ddrPct }}%</span>
+                </td>
+                <td class="text-right font-mono text-secondary">{{ qa.horasTest }} h</td>
+              </tr>
+              <tr *ngIf="dashboard.equipoQa.length === 0">
+                <td colspan="5" class="empty-cell">No hay métricas de QA registradas en el ciclo.</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- DEV Performance -->
+      <div class="prod-panel">
+        <div class="panel-header">
+          <div class="panel-title-with-icon">
+            <div class="icon-avatar bg-purple-soft text-purple">
+              <span class="material-symbols-outlined">terminal</span>
+            </div>
+            <div>
+              <h3 class="panel-title">Rendimiento y Resolución DEV</h3>
+              <span class="panel-subtitle">Defect Lifecycle, tasa de corrección y efectividad</span>
+            </div>
+          </div>
+          <span class="badge-counter">{{ dashboard.equipoDev.length }} Developers</span>
+        </div>
+
+        <div class="table-scroll">
+          <table class="prod-table">
+            <thead>
+              <tr>
+                <th>Desarrollador</th>
+                <th class="text-center">Asignados</th>
+                <th class="text-center">Corregidos</th>
+                <th class="text-center">Efectividad</th>
+                <th class="text-right">Tiempo Fix</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let dev of dashboard.equipoDev">
+                <td>
+                  <div class="user-chip">
+                    <div class="user-avatar bg-slate-200 text-slate-800">{{ dev.iniciales }}</div>
+                    <div class="user-info">
+                      <span class="user-name">{{ dev.devNombre }}</span>
+                      <span class="user-role">{{ dev.rol }}</span>
+                    </div>
+                  </div>
+                </td>
+                <td class="text-center font-mono">{{ dev.defectosAsignados }}</td>
+                <td class="text-center font-mono font-bold text-emerald">{{ dev.defectosCorregidos }}</td>
+                <td class="text-center">
+                  <span class="pill-metric" [class.bg-emerald-light]="dev.efectividadPct >= 75" [class.text-emerald]="dev.efectividadPct >= 75" [class.bg-amber-light]="dev.efectividadPct < 75" [class.text-amber]="dev.efectividadPct < 75">
+                    {{ dev.efectividadPct }}%
+                  </span>
+                </td>
+                <td class="text-right font-mono text-secondary">{{ dev.tiempoPromedioFixHoras }} h</td>
+              </tr>
+              <tr *ngIf="dashboard.equipoDev.length === 0">
+                <td colspan="5" class="empty-cell">No hay desarrolladores con defectos asignados en el ciclo.</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+  </ng-container>
+</div>

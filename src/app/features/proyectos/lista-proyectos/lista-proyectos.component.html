@@ -1,0 +1,103 @@
+<div class="page-shell">
+
+  <!-- Page header -->
+  <div class="page-header">
+    <div class="page-header-left">
+      <h1 class="page-title">Gestión de Proyectos</h1>
+      <p class="page-subtitle">Supervisa el ciclo de aseguramiento de calidad, asignación de líderes de QA y entregables por cliente.</p>
+    </div>
+    <button class="btn-primary-sm" (click)="abrirModalForm()">
+      <span class="material-symbols-outlined">add_circle</span>
+      <span>Nuevo proyecto</span>
+    </button>
+  </div>
+
+  <!-- Filters bar -->
+  <div class="filters-bar">
+    <div class="search-wrapper">
+      <span class="material-symbols-outlined search-icon">search</span>
+      <input type="text" class="search-input" placeholder="Buscar por código (PRJ-XXX) o nombre..."
+        [(ngModel)]="filtroBusqueda" (input)="onFiltroChange()" />
+    </div>
+
+    <div class="filter-chips">
+      <!-- Select Cliente (usando el estilo de chip o un select adaptado) -->
+      <select class="chip chip-select bg-transparent border-none outline-none appearance-none cursor-pointer" [(ngModel)]="filtroCliente" (change)="onFiltroChange()">
+        <option value="">Todos los clientes</option>
+        <option value="banco">Banco Continental</option>
+        <option value="rimac">Rímac Seguros</option>
+        <option value="retail">Retail Corp S.A.</option>
+      </select>
+      
+      <span class="chip-separator">|</span>
+
+      <!-- Chips de estado -->
+      <button class="chip" [class.chip-active]="filtroEstado === ''" (click)="filtroEstado=''; onFiltroChange()">
+        Todos
+      </button>
+      <button class="chip" [class.chip-active]="filtroEstado === 'ACTIVO'" (click)="filtroEstado='ACTIVO'; onFiltroChange()">
+        <span class="dot dot-active"></span> Activos
+      </button>
+      <button class="chip" [class.chip-active]="filtroEstado === 'CERRADO'" (click)="filtroEstado='CERRADO'; onFiltroChange()">
+        <span class="dot dot-inactive"></span> Cerrados
+      </button>
+    </div>
+
+    <div class="results-count">
+      <span class="material-symbols-outlined">folder_copy</span>
+      <span>{{ totalElements }} proyecto{{ totalElements !== 1 ? 's' : '' }}</span>
+    </div>
+  </div>
+
+  <!-- Table card -->
+  <div class="table-card">
+
+    <!-- Loading overlay -->
+    <div class="loading-overlay" *ngIf="cargando">
+      <span class="material-symbols-outlined spin">progress_activity</span>
+      <span>Cargando proyectos...</span>
+    </div>
+
+    <ag-grid-angular
+      class="ag-theme-alpine usuarios-grid proyectos-grid"
+      [style.height]="'calc(100vh - 280px)'"
+      [rowData]="proyectos"
+      [columnDefs]="columnDefs"
+      [defaultColDef]="defaultColDef"
+      [gridOptions]="gridOptions"
+      (gridReady)="onGridReady($event)"
+      [overlayNoRowsTemplate]="overlayNoRowsTemplate">
+    </ag-grid-angular>
+
+    <div class="pagination-bar">
+      <div class="pagination-size">
+        <label for="page-size">Mostrar</label>
+        <select id="page-size" [value]="size" (change)="cambiarTamano($event)">
+          <option [value]="10">10</option>
+          <option [value]="20">20</option>
+          <option [value]="50">50</option>
+        </select>
+        <span>por página</span>
+      </div>
+      <div class="pagination-info">
+        {{ totalElements > 0 ? (page * size) + 1 : 0 }} - {{ min((page + 1) * size, totalElements) }} de {{ totalElements }}
+      </div>
+      <div class="pagination-controls">
+        <button class="page-btn" [disabled]="page === 0" (click)="cambiarPagina(page - 1)">
+          <span class="material-symbols-outlined">chevron_left</span>
+        </button>
+        <button class="page-btn" [disabled]="page === totalPages - 1 || totalPages === 0" (click)="cambiarPagina(page + 1)">
+          <span class="material-symbols-outlined">chevron_right</span>
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal de Formulario -->
+<app-form-proyecto 
+  *ngIf="mostrarModalForm" 
+  [proyectoId]="proyectoSeleccionado" 
+  (onClose)="cerrarModalForm()" 
+  (onGuardado)="alGuardar()">
+</app-form-proyecto>

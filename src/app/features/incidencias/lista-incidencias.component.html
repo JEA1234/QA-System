@@ -1,0 +1,588 @@
+<div class="page-shell">
+  <!-- Cabecera -->
+  <div class="page-header">
+    <div>
+      <h1 class="page-title">Gestión de Incidencias</h1>
+      <p class="page-subtitle">Reporta, asigna a desarrolladores y gestiona el ciclo de vida de los defectos (bugs).</p>
+    </div>
+    <div class="header-actions">
+      <button class="btn-primary-sm" (click)="abrirModalCrear()">
+        <span class="material-symbols-outlined">add_circle</span> Reportar incidencia
+      </button>
+    </div>
+  </div>
+
+  <!-- Barra de Filtros -->
+  <div class="filters-bar">
+    <div class="search-wrapper">
+      <span class="material-symbols-outlined search-icon">search</span>
+      <input
+        class="search-input"
+        placeholder="Buscar por código, título o descripción..."
+        [(ngModel)]="filtroBusqueda"
+        (keyup.enter)="aplicarFiltros()"
+      />
+    </div>
+
+    <app-select-search
+      [options]="opcionesProyectos()"
+      placeholder="Todos los proyectos"
+      [behaveAsSelect]="true"
+      [value]="toValue(filtroProyecto)"
+      (valueChange)="seleccionarProyectoFiltro($event)"
+     [allowClear]="true"></app-select-search>
+
+    <app-select-search
+      *ngIf="filtroProyecto"
+      [options]="opcionesRequerimientos()"
+      placeholder="Todos los requerimientos"
+      [behaveAsSelect]="true"
+      [value]="toValue(filtroRequerimiento)"
+      (valueChange)="filtroRequerimiento = $event ? +$event : null; aplicarFiltros()"
+     [allowClear]="true"></app-select-search>
+
+    <app-select-search
+      [options]="opcionesEstados()"
+      placeholder="Todos los estados"
+      [behaveAsSelect]="true"
+      [value]="filtroEstado"
+      (valueChange)="filtroEstado = $event; aplicarFiltros()"
+     [allowClear]="true"></app-select-search>
+
+    <app-select-search
+      [options]="opcionesSeveridades()"
+      placeholder="Todas las severidades"
+      [behaveAsSelect]="true"
+      [value]="filtroSeveridad"
+      (valueChange)="filtroSeveridad = $event; aplicarFiltros()"
+     [allowClear]="true"></app-select-search>
+
+    <app-select-search
+      [options]="opcionesPrioridades()"
+      placeholder="Todas las prioridades"
+      [behaveAsSelect]="true"
+      [value]="filtroPrioridad"
+      (valueChange)="filtroPrioridad = $event; aplicarFiltros()"
+     [allowClear]="true"></app-select-search>
+
+    <app-select-search
+      [options]="opcionesDesarrolladores()"
+      placeholder="Todos los responsables"
+      [behaveAsSelect]="true"
+      [value]="toValue(filtroResponsable)"
+      (valueChange)="filtroResponsable = $event ? +$event : null; aplicarFiltros()"
+     [allowClear]="true"></app-select-search>
+
+    <button class="btn-clear" (click)="limpiarFiltros()">
+      <span class="material-symbols-outlined">filter_alt_off</span> Limpiar
+    </button>
+  </div>
+
+  <!-- Contador de resultados -->
+  <div class="results-line">
+    <span><strong>{{ totalElements }}</strong> incidencia{{ totalElements !== 1 ? 's' : '' }}</span>
+    <span class="hint">Enter para buscar</span>
+  </div>
+
+  <!-- Error general -->
+  <div class="form-error page-error" *ngIf="error && !mostrarModalForm">
+    <span class="material-symbols-outlined">error</span>{{ error }}
+  </div>
+
+  <!-- Tabla de Incidencias -->
+  <div class="table-card">
+    <div class="loading-overlay" *ngIf="cargando">
+      <span class="material-symbols-outlined spin">progress_activity</span>
+      <span>Cargando incidencias...</span>
+    </div>
+
+    <div class="table-responsive">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th style="width: 100px;">Código</th>
+            <th>Título & Proyecto</th>
+            <th>Requerimiento / Build</th>
+            <th>Severidad & SLA</th>
+            <th>Prioridad</th>
+            <th>Estado</th>
+            <th>Responsable Dev</th>
+            <th style="text-align: center;">Evidencias</th>
+            <th style="text-align: right;">Acciones</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let inc of incidencias">
+            <td>
+              <span class="code-tag-inc">{{ inc.codigo }}</span>
+            </td>
+            <td>
+              <div class="cell-primary">
+                <strong class="inc-title">{{ inc.titulo }}</strong>
+              </div>
+              <div class="cell-sub">
+                <span class="project-tag">{{ inc.proyectoNombre }}</span>
+                <span class="obs-snippet" *ngIf="inc.descripcion">{{ inc.descripcion }}</span>
+              </div>
+            </td>
+            <td>
+              <div class="req-cell">
+                <span class="req-code" *ngIf="inc.requerimientoCodigo">{{ inc.requerimientoCodigo }}</span>
+                <span class="build-tag" *ngIf="inc.versionBuild">
+                  <span class="material-symbols-outlined">tag</span>{{ inc.versionBuild }}
+                </span>
+                <span class="muted" *ngIf="!inc.requerimientoCodigo && !inc.versionBuild">-</span>
+              </div>
+            </td>
+            <td>
+              <div class="sla-cell">
+                <span class="status-badge" [ngClass]="getSeveridadInfo(inc.severidad).clase">
+                  <span class="material-symbols-outlined badge-icon">
+                    {{ getSeveridadInfo(inc.severidad).icono }}
+                  </span>
+                  {{ getSeveridadInfo(inc.severidad).etiqueta.split(' ')[0] }}
+                </span>
+                <span class="sla-overdue" *ngIf="inc.slaVencido">
+                  <span class="material-symbols-outlined">timer_off</span> SLA Vencido
+                </span>
+                <span class="sla-date" *ngIf="!inc.slaVencido && inc.fechaLimiteSla">
+                  Límite: {{ inc.fechaLimiteSla | date:'dd/MM HH:mm' }}
+                </span>
+              </div>
+            </td>
+            <td>
+              <span class="priority-pill" [ngClass]="getPrioridadInfo(inc.prioridad).clase">
+                {{ getPrioridadInfo(inc.prioridad).etiqueta }}
+              </span>
+            </td>
+            <td>
+              <span class="status-badge" [ngClass]="getEstadoInfo(inc.estado).clase">
+                <span class="material-symbols-outlined badge-icon">
+                  {{ getEstadoInfo(inc.estado).icono }}
+                </span>
+                {{ getEstadoInfo(inc.estado).etiqueta }}
+              </span>
+            </td>
+            <td>
+              <div class="dev-info">
+                <span class="dev-name" *ngIf="inc.responsableNombre">
+                  <span class="material-symbols-outlined dev-icon">person</span>
+                  {{ inc.responsableNombre }}
+                </span>
+                <span class="unassigned-badge" *ngIf="!inc.responsableNombre">Sin asignar</span>
+              </div>
+            </td>
+            <td style="text-align: center;">
+              <button
+                class="evidence-btn"
+                [class.has-evidence]="inc.evidencias && inc.evidencias.length > 0"
+                (click)="abrirModalEvidencias(inc)"
+                title="Ver o adjuntar evidencias"
+              >
+                <span class="material-symbols-outlined">attach_file</span>
+                <span>{{ inc.evidencias ? inc.evidencias.length : 0 }}</span>
+              </button>
+            </td>
+            <td style="text-align: right;">
+              <div class="actions-group">
+                <button
+                  class="action-icon-btn chat-btn"
+                  (click)="abrirModalDetalle(inc)"
+                  title="Ver detalle, estados y discusión"
+                >
+                  <span class="material-symbols-outlined">forum</span>
+                  <span class="chat-count" *ngIf="inc.comentarios && inc.comentarios.length">
+                    {{ inc.comentarios.length }}
+                  </span>
+                </button>
+                <button
+                  class="action-icon-btn"
+                  (click)="abrirModalEditar(inc)"
+                  title="Editar incidencia"
+                >
+                  <span class="material-symbols-outlined">edit</span>
+                </button>
+              </div>
+            </td>
+          </tr>
+          <tr *ngIf="!cargando && !incidencias.length">
+            <td colspan="9" class="empty-table">
+              <span class="material-symbols-outlined empty-icon">bug_report</span>
+              <p>No se encontraron incidencias registradas con los filtros actuales.</p>
+              <button class="btn-primary-sm" (click)="abrirModalCrear()">
+                Reportar primera incidencia
+              </button>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Paginación -->
+    <div class="pagination-bar">
+      <div class="pagination-size">
+        <label>Mostrar</label>
+        <select [value]="size" (change)="size = +$any($event.target).value; page = 0; cargarIncidencias()">
+          <option [value]="10">10</option>
+          <option [value]="20">20</option>
+          <option [value]="50">50</option>
+        </select>
+        <span>por página</span>
+      </div>
+      <div class="pagination-info">
+        {{ totalElements ? page * size + 1 : 0 }} - {{ min((page + 1) * size, totalElements) }} de {{ totalElements }}
+      </div>
+      <div class="pagination-controls">
+        <button class="page-btn" [disabled]="page === 0" (click)="cambiarPagina(page - 1)">
+          <span class="material-symbols-outlined">chevron_left</span>
+        </button>
+        <button class="page-btn" [disabled]="page >= totalPages - 1 || !totalPages" (click)="cambiarPagina(page + 1)">
+          <span class="material-symbols-outlined">chevron_right</span>
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ================= MODAL: REGISTRAR / EDITAR INCIDENCIA ================= -->
+<app-modal [isOpen]="mostrarModalForm" [maxWidth]="'800px'" (close)="cerrarModalForm()">
+  <div class="modal-form-box">
+    <div class="modal-form-header">
+      <div class="modal-header-left">
+        <div class="modal-header-icon inc-modal-icon">
+          <span class="material-symbols-outlined">pest_control</span>
+        </div>
+        <div>
+          <h2>{{ modoEdicion ? 'Editar incidencia' : 'Reportar nueva incidencia' }}</h2>
+          <p>Describe el comportamiento anómalo y asigna la severidad correspondiente</p>
+        </div>
+      </div>
+      <button class="modal-close-btn" type="button" (click)="cerrarModalForm()">
+        <span class="material-symbols-outlined">close</span>
+      </button>
+    </div>
+
+    <div class="modal-form-body">
+      <div class="form-error" *ngIf="error">
+        <span class="material-symbols-outlined">error</span>{{ error }}
+      </div>
+
+      <!-- Sección Identificación -->
+      <div class="modal-section">
+        <div class="modal-section-title">
+          <span class="material-symbols-outlined">info</span>
+          <span>Identificación y Vínculos</span>
+        </div>
+        <div class="form-grid">
+          <label>
+            Proyecto *
+            <app-select-search
+              [options]="opcionesProyectos()"
+              [value]="toValue(form.proyectoId)"
+              placeholder="Selecciona proyecto"
+              [behaveAsSelect]="true"
+              (valueChange)="onProyectoFormChange($event)"
+            ></app-select-search>
+          </label>
+
+          <label>
+            Requerimiento asociado
+            <app-select-search
+              [options]="opcionesRequerimientos()"
+              [value]="toValue(form.requerimientoId)"
+              placeholder="Opcional: Requerimiento"
+              [behaveAsSelect]="true"
+              (valueChange)="form.requerimientoId = $event ? +$event : null"
+            ></app-select-search>
+          </label>
+
+          <label class="col-span-2">
+            Título del defecto *
+            <input
+              [(ngModel)]="form.titulo"
+              placeholder="Ej. Error 500 al guardar caso de prueba sin ambiente"
+              maxlength="200"
+            />
+          </label>
+        </div>
+      </div>
+
+      <!-- Sección Clasificación & SLA -->
+      <div class="modal-section">
+        <div class="modal-section-title">
+          <span class="material-symbols-outlined">tune</span>
+          <span>Clasificación, SLA y Responsable</span>
+        </div>
+        <div class="form-grid">
+          <label>
+            Severidad *
+            <app-select-search
+              [options]="opcionesSeveridades()"
+              [value]="form.severidad"
+              placeholder="Selecciona severidad"
+              [behaveAsSelect]="true"
+              (valueChange)="form.severidad = $event"
+            ></app-select-search>
+          </label>
+
+          <label>
+            Prioridad *
+            <app-select-search
+              [options]="opcionesPrioridades()"
+              [value]="form.prioridad"
+              placeholder="Selecciona prioridad"
+              [behaveAsSelect]="true"
+              (valueChange)="form.prioridad = $event"
+            ></app-select-search>
+          </label>
+
+          <label>
+            Desarrollador responsable
+            <app-select-search
+              [options]="opcionesDesarrolladores()"
+              [value]="toValue(form.responsableId)"
+              placeholder="Asignar a un desarrollador..."
+              [behaveAsSelect]="true"
+              (valueChange)="form.responsableId = $event ? +$event : null"
+            ></app-select-search>
+          </label>
+
+          <label>
+            Versión / Build del sistema
+            <input
+              [(ngModel)]="form.versionBuild"
+              placeholder="Ej. v1.0.4-rc2"
+              maxlength="100"
+            />
+          </label>
+        </div>
+      </div>
+
+      <!-- Sección Descripción -->
+      <div class="modal-section">
+        <div class="modal-section-title">
+          <span class="material-symbols-outlined">description</span>
+          <span>Descripción y Pasos para Reproducir</span>
+        </div>
+        <label class="full-label">
+          <textarea
+            [(ngModel)]="form.descripcion"
+            rows="5"
+            placeholder="1. Pasos para reproducir...&#10;2. Resultado obtenido...&#10;3. Resultado esperado..."
+          ></textarea>
+        </label>
+      </div>
+    </div>
+
+    <div class="modal-form-footer">
+      <button class="btn-ghost-lg" type="button" (click)="cerrarModalForm()">Cancelar</button>
+      <button class="btn-primary-lg" type="button" [disabled]="guardando" (click)="guardarIncidencia()">
+        <span class="material-symbols-outlined">save</span>
+        {{ guardando ? 'Guardando...' : (modoEdicion ? 'Guardar cambios' : 'Reportar incidencia') }}
+      </button>
+    </div>
+  </div>
+</app-modal>
+
+<!-- ================= MODAL: DETALLE, ESTADOS Y DISCUSIÓN (RQ-MOD07-08) ================= -->
+<app-modal [isOpen]="mostrarModalDetalle" [maxWidth]="'850px'" (close)="cerrarModalDetalle()">
+  <div class="modal-form-box" *ngIf="incidenciaSeleccionada">
+    <div class="modal-form-header">
+      <div class="modal-header-left">
+        <div class="modal-header-icon inc-modal-icon">
+          <span class="material-symbols-outlined">forum</span>
+        </div>
+        <div>
+          <h2>{{ incidenciaSeleccionada.codigo }} — {{ incidenciaSeleccionada.titulo }}</h2>
+          <p>{{ incidenciaSeleccionada.proyectoNombre }} · Reportado por {{ incidenciaSeleccionada.creadorNombre }}</p>
+        </div>
+      </div>
+      <button class="modal-close-btn" type="button" (click)="cerrarModalDetalle()">
+        <span class="material-symbols-outlined">close</span>
+      </button>
+    </div>
+
+    <div class="modal-form-body">
+      <!-- Barra superior de estado actual y botones rápidos de transición -->
+      <div class="state-transition-bar">
+        <div class="current-state-box">
+          <span class="state-label">Estado actual:</span>
+          <span class="status-badge" [ngClass]="getEstadoInfo(incidenciaSeleccionada.estado).clase">
+            <span class="material-symbols-outlined badge-icon">
+              {{ getEstadoInfo(incidenciaSeleccionada.estado).icono }}
+            </span>
+            {{ getEstadoInfo(incidenciaSeleccionada.estado).etiqueta }}
+          </span>
+        </div>
+
+        <div class="quick-state-buttons">
+          <button
+            class="btn-state-action btn-state-resolviendo"
+            *ngIf="incidenciaSeleccionada.estado === 'ASIGNADA' || incidenciaSeleccionada.estado === 'NUEVA'"
+            (click)="cambiarEstadoDirecto('EN_RESOLUCION')"
+          >
+            <span class="material-symbols-outlined">engineering</span> En resolución
+          </button>
+          <button
+            class="btn-state-action btn-state-resuelta"
+            *ngIf="incidenciaSeleccionada.estado === 'EN_RESOLUCION' || incidenciaSeleccionada.estado === 'ASIGNADA'"
+            (click)="cambiarEstadoDirecto('RESUELTA')"
+          >
+            <span class="material-symbols-outlined">check_circle</span> Marcar Resuelta
+          </button>
+          <button
+            class="btn-state-action btn-state-cerrada"
+            *ngIf="incidenciaSeleccionada.estado === 'RESUELTA'"
+            (click)="cambiarEstadoDirecto('CERRADA')"
+          >
+            <span class="material-symbols-outlined">task_alt</span> Cerrar definitiva
+          </button>
+          <button
+            class="btn-state-action btn-state-rechazada"
+            *ngIf="incidenciaSeleccionada.estado !== 'CERRADA' && incidenciaSeleccionada.estado !== 'RECHAZADA'"
+            (click)="cambiarEstadoDirecto('RECHAZADA')"
+          >
+            <span class="material-symbols-outlined">cancel</span> Rechazar
+          </button>
+        </div>
+      </div>
+
+      <!-- Tarjeta con Descripción detallada -->
+      <div class="detail-description-card">
+        <h4>Descripción del problema</h4>
+        <p class="description-text">{{ incidenciaSeleccionada.descripcion }}</p>
+      </div>
+
+      <!-- Hilo de Comentarios / Discusión Técnica (RQ-MOD07-08) -->
+      <div class="comments-section">
+        <div class="comments-header">
+          <span class="material-symbols-outlined">chat</span>
+          <h3>Discusión y Seguimiento Técnico ({{ comentarios.length }})</h3>
+        </div>
+
+        <div class="comments-timeline">
+          <div class="comment-bubble" *ngFor="let c of comentarios">
+            <div class="comment-author-bar">
+              <span class="author-name">
+                <span class="material-symbols-outlined author-icon">person</span>
+                {{ c.usuarioNombre }}
+              </span>
+              <span class="comment-date">{{ c.fecha | date:'dd/MM/yyyy HH:mm' }}</span>
+            </div>
+            <p class="comment-text">{{ c.comentario }}</p>
+          </div>
+
+          <div class="empty-comments" *ngIf="!comentarios.length">
+            <p>No hay comentarios aún en esta incidencia. Inicia la discusión técnica abajo.</p>
+          </div>
+        </div>
+
+        <!-- Input para agregar comentario -->
+        <div class="comment-input-box">
+          <textarea
+            [(ngModel)]="nuevoComentario"
+            rows="2"
+            placeholder="Escribe una nota técnica, solución propuesta o pregunta para el tester..."
+          ></textarea>
+          <button
+            class="btn-primary-sm send-comment-btn"
+            [disabled]="enviandoComentario || !nuevoComentario.trim()"
+            (click)="enviarComentario()"
+          >
+            <span class="material-symbols-outlined">send</span>
+            {{ enviandoComentario ? 'Enviando...' : 'Comentar' }}
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal-form-footer">
+      <button class="btn-ghost-lg" type="button" (click)="cerrarModalDetalle()">Cerrar</button>
+    </div>
+  </div>
+</app-modal>
+
+<!-- ================= MODAL: EVIDENCIAS (RQ-MOD07-06) ================= -->
+<app-modal [isOpen]="mostrarModalEvidencias" [maxWidth]="'700px'" (close)="cerrarModalEvidencias()">
+  <div class="modal-form-box">
+    <div class="modal-form-header">
+      <div class="modal-header-left">
+        <div class="modal-header-icon inc-modal-icon">
+          <span class="material-symbols-outlined">attachment</span>
+        </div>
+        <div>
+          <h2>Evidencias de la Incidencia</h2>
+          <p>{{ incidenciaSeleccionada?.codigo }}: {{ incidenciaSeleccionada?.titulo }}</p>
+        </div>
+      </div>
+      <button class="modal-close-btn" type="button" (click)="cerrarModalEvidencias()">
+        <span class="material-symbols-outlined">close</span>
+      </button>
+    </div>
+
+    <div class="modal-form-body">
+      <!-- Carga de nueva evidencia -->
+      <div class="upload-zone">
+        <input
+          type="file"
+          id="fileIncidenciaEvidenciaInput"
+          style="display: none;"
+          (change)="seleccionarArchivo($event)"
+          accept=".png,.jpg,.jpeg,.pdf,.txt,.log,.json,.mp4"
+        />
+        <label for="fileIncidenciaEvidenciaInput" class="upload-box">
+          <span class="material-symbols-outlined upload-icon">cloud_upload</span>
+          <span class="upload-title">
+            {{ archivoEvidencia ? archivoEvidencia.name : 'Haz clic para seleccionar captura o log de error' }}
+          </span>
+          <span class="upload-hint">PNG, JPG, PDF, LOG, JSON o MP4 (Máximo 15 MB)</span>
+        </label>
+
+        <button
+          *ngIf="archivoEvidencia"
+          class="btn-primary-sm upload-confirm-btn"
+          [disabled]="subiendoArchivo"
+          (click)="subirEvidencia()"
+        >
+          <span class="material-symbols-outlined">upload</span>
+          {{ subiendoArchivo ? 'Subiendo...' : 'Confirmar subida' }}
+        </button>
+      </div>
+
+      <!-- Lista de evidencias adjuntas -->
+      <div class="evidence-list-container">
+        <h3>Archivos adjuntos ({{ evidencias.length }})</h3>
+        <div class="evidence-item" *ngFor="let ev of evidencias">
+          <div class="evidence-left">
+            <span class="material-symbols-outlined file-icon">description</span>
+            <div>
+              <strong>{{ ev.nombre }}</strong>
+              <div class="file-meta">
+                <span>{{ formatearTamano(ev.tamanoBytes) }}</span>
+                <span>·</span>
+                <span>{{ ev.fecha | date:'dd/MM/yyyy HH:mm' }}</span>
+              </div>
+            </div>
+          </div>
+          <button
+            class="action-icon-btn delete-btn"
+            (click)="eliminarEvidencia(ev)"
+            title="Eliminar evidencia"
+          >
+            <span class="material-symbols-outlined">delete</span>
+          </button>
+        </div>
+
+        <div class="empty-evidence" *ngIf="!evidencias.length">
+          <span class="material-symbols-outlined">folder_off</span>
+          <p>No se han adjuntado evidencias a esta incidencia.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal-form-footer">
+      <button class="btn-ghost-lg" type="button" (click)="cerrarModalEvidencias()">Cerrar</button>
+    </div>
+  </div>
+</app-modal>
+

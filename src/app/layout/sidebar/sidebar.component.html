@@ -1,0 +1,95 @@
+<aside
+  class="sidebar-container bg-sidebar border-r border-sidebar-accent flex flex-col justify-between shrink-0 z-20 shadow-sm relative select-none"
+  [class.sidebar-collapsed]="colapsado">
+
+  <div>
+    <!-- Logo & Branding con Botón Toggle -->
+    <div class="sidebar-header border-b border-sidebar-accent bg-sidebar sticky top-0 z-10">
+      <div class="logo-group">
+        <div class="w-10 h-10 rounded-xl bg-primary flex items-center justify-center text-on-primary shadow-sm shrink-0">
+          <span class="material-symbols-outlined text-[24px]">verified_user</span>
+        </div>
+        <div class="flex flex-col min-w-0" *ngIf="!colapsado">
+          <span class="font-title-md text-title-md font-bold text-white tracking-tight leading-tight truncate">QA System</span>
+          <span class="font-label-sm text-label-sm font-medium text-sidebar-text uppercase tracking-widest truncate">Trazabilidad</span>
+        </div>
+      </div>
+
+      <!-- Botón de colapso -->
+      <button
+        type="button"
+        class="toggle-collapse-btn"
+        (click)="toggleColapso()"
+        [title]="colapsado ? 'Expandir menú' : 'Comprimir menú'">
+        <span class="material-symbols-outlined text-[20px]">
+          {{ colapsado ? 'chevron_right' : 'menu_open' }}
+        </span>
+      </button>
+    </div>
+
+    <!-- Navigation Menu -->
+    <nav class="flex flex-col gap-1 px-2 py-3 overflow-y-auto custom-scrollbar h-[calc(100vh-175px)]">
+      <!-- Etiqueta de Sección (solo visible cuando está expandido) -->
+      <div class="section-label" *ngIf="!colapsado">
+        <span>Principal</span>
+      </div>
+      <div class="section-divider" *ngIf="colapsado"></div>
+
+      <!-- Enlaces de Módulos Filtrados por Rol -->
+      <a
+        *ngFor="let item of modulosVisibles"
+        [routerLink]="item.path"
+        routerLinkActive="active-nav-link"
+        [routerLinkActiveOptions]="{ exact: item.path === '/' }"
+        [title]="colapsado ? item.nombre : ''"
+        class="nav-item-link"
+        [class.nav-item-collapsed]="colapsado">
+        <span class="material-symbols-outlined nav-icon">{{ item.icono }}</span>
+        <span class="nav-text" *ngIf="!colapsado">{{ item.nombre }}</span>
+      </a>
+    </nav>
+  </div>
+
+  <!-- User Profile Widget (Bottom) -->
+  <div class="sidebar-user-footer border-t border-sidebar-accent bg-sidebar sticky bottom-0 relative">
+    <div
+      (click)="toggleMenuUsuario($event)"
+      class="user-card hover:bg-sidebar-accent/50 transition-colors cursor-pointer border border-transparent hover:border-sidebar-text/30"
+      [class.user-card-collapsed]="colapsado"
+      [title]="colapsado ? (getNombreCompleto() + ' (' + getRolPrincipal() + ')') : 'Opciones de cuenta'">
+      
+      <div class="w-10 h-10 rounded-full bg-primary text-white font-label-md text-label-md font-bold flex items-center justify-center shadow-xs shrink-0">
+        {{ getIniciales() }}
+      </div>
+      
+      <div class="flex flex-col flex-1 min-w-0" *ngIf="!colapsado">
+        <span class="font-label-md text-label-md font-bold text-white truncate">{{ getNombreCompleto() }}</span>
+        <span class="font-body-sm text-body-sm text-sidebar-text truncate">{{ getCorreo() }}</span>
+      </div>
+
+      <span class="material-symbols-outlined text-sidebar-text text-[20px]" *ngIf="!colapsado">more_vert</span>
+    </div>
+
+    <!-- Menú Desplegable Popup de Usuario -->
+    <div
+      *ngIf="menuAbierto"
+      class="user-popup-menu"
+      [class.popup-collapsed]="colapsado"
+      (click)="$event.stopPropagation()">
+      <div class="user-popup-header">
+        <span class="user-popup-name">{{ getNombreCompleto() }}</span>
+        <span class="user-popup-role">{{ getRolPrincipal() }}</span>
+        <span class="user-popup-email">{{ getCorreo() }}</span>
+      </div>
+      <div class="user-popup-divider"></div>
+      <button class="user-popup-item" (click)="irACambiarPassword()">
+        <span class="material-symbols-outlined">lock_reset</span>
+        <span>Cambiar Contraseña</span>
+      </button>
+      <button class="user-popup-item text-logout" (click)="cerrarSesion()">
+        <span class="material-symbols-outlined">logout</span>
+        <span>Cerrar Sesión</span>
+      </button>
+    </div>
+  </div>
+</aside>

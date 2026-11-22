@@ -1,0 +1,17 @@
+<div class="flex h-screen bg-surface font-sans antialiased overflow-hidden">
+
+  <!-- SIDEBAR NAVIGATION -->
+  <app-sidebar></app-sidebar>
+
+  <!-- MAIN WORKSPACE -->
+  <main class="flex-1 flex flex-col h-screen overflow-y-auto relative custom-scrollbar bg-surface">
+    <!-- TOP HEADER CON BUSCADOR OMNIBOX Y NOTIFICACIONES -->
+    <app-header></app-header>
+
+    <!-- VISTA ACTIVA -->
+    <div class="flex-1">
+      <router-outlet></router-outlet>
+    </div>
+  </main>
+
+</div>

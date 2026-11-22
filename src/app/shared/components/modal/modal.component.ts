@@ -1,0 +1,4 @@
+import { Component, EventEmitter, HostListener, Input, Output } from '@angular/core';
+import { CommonModule } from '@angular/common';
+@Component({ selector: 'app-modal', standalone: true, imports: [CommonModule], template: `<div class="shared-modal" *ngIf="isOpen" (click)="close.emit()"><div class="shared-modal-content" [style.max-width]="maxWidth" (click)="$event.stopPropagation()"><ng-content></ng-content></div></div>`, styles: [`.shared-modal{position:fixed;z-index:9999;inset:0;display:flex;align-items:center;justify-content:center;padding:20px;background:rgba(15,23,42,.5)}.shared-modal-content{width:100%;max-height:calc(100vh - 40px);overflow:auto;background:#fff;border-radius:10px;box-shadow:0 20px 25px rgba(0,0,0,.1)}`] })
+export class ModalComponent { @Input() isOpen = false; @Input() maxWidth = '600px'; @Output() close = new EventEmitter<void>(); @HostListener('document:keydown.escape') onEscape(): void { if (this.isOpen) this.close.emit(); } }

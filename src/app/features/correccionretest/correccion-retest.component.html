@@ -1,0 +1,515 @@
+<div class="page-shell">
+  <!-- Cabecera -->
+  <div class="page-header">
+    <div>
+      <h1 class="page-title">Corrección, Retest y Cierre</h1>
+      <p class="page-subtitle">Valida los fixes aplicados por desarrollo, registra retests e inspecciona la trazabilidad del defecto.</p>
+    </div>
+  </div>
+
+  <!-- Pestañas de Flujo de Trabajo -->
+  <div class="workflow-tabs">
+    <button
+      class="tab-btn"
+      [class.active]="filtroTab === 'RESUELTA'"
+      (click)="cambiarTab('RESUELTA')"
+    >
+      <span class="material-symbols-outlined">published_with_changes</span>
+      <span>Listas para Retest (Resueltas)</span>
+    </button>
+
+    <button
+      class="tab-btn"
+      [class.active]="filtroTab === 'EN_RESOLUCION'"
+      (click)="cambiarTab('EN_RESOLUCION')"
+    >
+      <span class="material-symbols-outlined">engineering</span>
+      <span>En Resolución / Fix Pendiente</span>
+    </button>
+
+    <button
+      class="tab-btn"
+      [class.active]="filtroTab === 'CERRADA'"
+      (click)="cambiarTab('CERRADA')"
+    >
+      <span class="material-symbols-outlined">task_alt</span>
+      <span>Cerradas / Validadas</span>
+    </button>
+
+    <button
+      class="tab-btn"
+      [class.active]="filtroTab === 'TODAS'"
+      (click)="cambiarTab('TODAS')"
+    >
+      <span class="material-symbols-outlined">list</span>
+      <span>Todas las incidencias</span>
+    </button>
+  </div>
+
+  <!-- Barra de Filtros -->
+  <div class="filters-bar">
+    <div class="search-wrapper">
+      <span class="material-symbols-outlined search-icon">search</span>
+      <input
+        class="search-input"
+        placeholder="Buscar por código, título o descripción..."
+        [(ngModel)]="filtroBusqueda"
+        (keyup.enter)="aplicarFiltros()"
+      />
+    </div>
+
+    <app-select-search
+      [options]="opcionesProyectos()"
+      placeholder="Todos los proyectos"
+      [behaveAsSelect]="true"
+      [value]="toValue(filtroProyecto)"
+      (valueChange)="filtroProyecto = $event ? +$event : null; aplicarFiltros()"
+     [allowClear]="true"></app-select-search>
+
+    <button class="btn-clear" (click)="limpiarFiltros()">
+      <span class="material-symbols-outlined">filter_alt_off</span> Limpiar
+    </button>
+  </div>
+
+  <!-- Contador de resultados -->
+  <div class="results-line">
+    <span><strong>{{ totalElements }}</strong> incidencia{{ totalElements !== 1 ? 's' : '' }} en este estado</span>
+    <span class="hint">Enter para buscar</span>
+  </div>
+
+  <!-- Error general -->
+  <div class="form-error page-error" *ngIf="error">
+    <span class="material-symbols-outlined">error</span>{{ error }}
+  </div>
+
+  <!-- Tabla de Incidencias en Flujo de Retest -->
+  <div class="table-card">
+    <div class="loading-overlay" *ngIf="cargando">
+      <span class="material-symbols-outlined spin">progress_activity</span>
+      <span>Cargando flujo de retest...</span>
+    </div>
+
+    <div class="table-responsive">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th style="width: 100px;">Código</th>
+            <th>Defecto / Título</th>
+            <th>Proyecto & Requerimiento</th>
+            <th>Desarrollador</th>
+            <th>Estado Actual</th>
+            <th style="text-align: right;">Acciones del Flujo</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let inc of incidencias">
+            <td>
+              <span class="code-tag-inc">{{ inc.codigo }}</span>
+            </td>
+            <td>
+              <div class="cell-primary">
+                <strong class="inc-title">{{ inc.titulo }}</strong>
+              </div>
+              <div class="cell-sub" *ngIf="inc.versionBuild">
+                <span class="build-tag">
+                  <span class="material-symbols-outlined">tag</span>{{ inc.versionBuild }}
+                </span>
+              </div>
+            </td>
+            <td>
+              <div class="project-info-cell">
+                <span class="project-tag">{{ inc.proyectoNombre }}</span>
+                <span class="req-link" *ngIf="inc.requerimientoCodigo">
+                  {{ inc.requerimientoCodigo }}
+                </span>
+              </div>
+            </td>
+            <td>
+              <div class="dev-info" *ngIf="inc.responsableNombre">
+                <span class="material-symbols-outlined dev-icon">person</span>
+                <span>{{ inc.responsableNombre }}</span>
+              </div>
+              <span class="unassigned-badge" *ngIf="!inc.responsableNombre">Sin asignar</span>
+            </td>
+            <td>
+              <span class="status-badge" [ngClass]="getEstadoBadge(inc.estado).clase">
+                <span class="material-symbols-outlined badge-icon">
+                  {{ getEstadoBadge(inc.estado).icono }}
+                </span>
+                {{ getEstadoBadge(inc.estado).etiqueta }}
+              </span>
+            </td>
+            <td style="text-align: right;">
+              <div class="workflow-actions-group">
+                <!-- Botón Ejecutar Retest (Destacado para incidencias RESUELTAS) -->
+                <button
+                  class="btn-flow-action btn-flow-retest"
+                  *ngIf="inc.estado === 'RESUELTA'"
+                  (click)="abrirModalRetest(inc)"
+                  title="Ejecutar retest de validación"
+                >
+                  <span class="material-symbols-outlined">play_arrow</span>
+                  <span>Ejecutar Retest</span>
+                </button>
+
+                <!-- Botón Registrar Fix (Para desarrollador cuando está en resolución) -->
+                <button
+                  class="btn-flow-action btn-flow-fix"
+                  *ngIf="inc.estado === 'EN_RESOLUCION' || inc.estado === 'ASIGNADA'"
+                  (click)="abrirModalCorreccion(inc)"
+                  title="Registrar solución aplicada y código"
+                >
+                  <span class="material-symbols-outlined">build</span>
+                  <span>Registrar Fix</span>
+                </button>
+
+                <!-- Botón Reabrir (Para incidencias cerradas o resueltas) -->
+                <button
+                  class="btn-flow-action btn-flow-reopen"
+                  *ngIf="inc.estado === 'CERRADA'"
+                  (click)="abrirModalReapertura(inc)"
+                  title="Reabrir incidencia con auditoría de motivo"
+                >
+                  <span class="material-symbols-outlined">replay</span>
+                  <span>Reabrir</span>
+                </button>
+
+                <!-- Historial y Trazabilidad -->
+                <button
+                  class="action-icon-btn"
+                  (click)="abrirModalHistorial(inc)"
+                  title="Ver historial de correcciones, retests y reaperturas"
+                >
+                  <span class="material-symbols-outlined">history</span>
+                </button>
+              </div>
+            </td>
+          </tr>
+          <tr *ngIf="!cargando && !incidencias.length">
+            <td colspan="6" class="empty-table">
+              <span class="material-symbols-outlined empty-icon">rule</span>
+              <p>No hay incidencias en esta etapa del flujo de retest.</p>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Paginación -->
+    <div class="pagination-bar">
+      <div class="pagination-size">
+        <label>Mostrar</label>
+        <select [value]="size" (change)="size = +$any($event.target).value; page = 0; cargarIncidencias()">
+          <option [value]="10">10</option>
+          <option [value]="20">20</option>
+          <option [value]="50">50</option>
+        </select>
+        <span>por página</span>
+      </div>
+      <div class="pagination-info">
+        {{ totalElements ? page * size + 1 : 0 }} - {{ min((page + 1) * size, totalElements) }} de {{ totalElements }}
+      </div>
+      <div class="pagination-controls">
+        <button class="page-btn" [disabled]="page === 0" (click)="cambiarPagina(page - 1)">
+          <span class="material-symbols-outlined">chevron_left</span>
+        </button>
+        <button class="page-btn" [disabled]="page >= totalPages - 1 || !totalPages" (click)="cambiarPagina(page + 1)">
+          <span class="material-symbols-outlined">chevron_right</span>
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ================= MODAL 1: REGISTRAR CORRECCIÓN (DEV) ================= -->
+<app-modal [isOpen]="mostrarModalCorreccion" [maxWidth]="'700px'" (close)="cerrarModalCorreccion()">
+  <div class="modal-form-box" *ngIf="incidenciaSeleccionada">
+    <div class="modal-form-header">
+      <div class="modal-header-left">
+        <div class="modal-header-icon fix-modal-icon">
+          <span class="material-symbols-outlined">build</span>
+        </div>
+        <div>
+          <h2>Registrar Corrección de Código</h2>
+          <p>{{ incidenciaSeleccionada.codigo }} — {{ incidenciaSeleccionada.titulo }}</p>
+        </div>
+      </div>
+      <button class="modal-close-btn" type="button" (click)="cerrarModalCorreccion()">
+        <span class="material-symbols-outlined">close</span>
+      </button>
+    </div>
+
+    <div class="modal-form-body">
+      <div class="modal-section">
+        <div class="modal-section-title">
+          <span class="material-symbols-outlined">code</span>
+          <span>Detalles del Fix y Control de Versiones (RQ-MOD08-05)</span>
+        </div>
+        <div class="form-grid">
+          <label>
+            Rama Git
+            <input [(ngModel)]="correccionForm.rama" placeholder="fix/INC-0001" />
+          </label>
+          <label>
+            Commit Hash
+            <input [(ngModel)]="correccionForm.commitHash" placeholder="a1b2c3d4..." />
+          </label>
+          <label class="col-span-2">
+            Versión / Build del Fix
+            <input [(ngModel)]="correccionForm.versionCodigo" placeholder="v1.0.5-rc1" />
+          </label>
+        </div>
+      </div>
+
+      <div class="modal-section">
+        <div class="modal-section-title">
+          <span class="material-symbols-outlined">description</span>
+          <span>Explicación de la solución aplicada *</span>
+        </div>
+        <label class="full-label">
+          <textarea
+            [(ngModel)]="correccionForm.descripcion"
+            rows="4"
+            placeholder="Describe qué causaba el error y cómo se solucionó para guiar al tester en el retest..."
+          ></textarea>
+        </label>
+      </div>
+    </div>
+
+    <div class="modal-form-footer">
+      <button class="btn-ghost-lg" type="button" (click)="cerrarModalCorreccion()">Cancelar</button>
+      <button class="btn-primary-lg" type="button" [disabled]="guardandoCorreccion" (click)="guardarCorreccion()">
+        <span class="material-symbols-outlined">check</span>
+        {{ guardandoCorreccion ? 'Guardando...' : 'Marcar como Resuelta para Retest' }}
+      </button>
+    </div>
+  </div>
+</app-modal>
+
+<!-- ================= MODAL 2: EJECUTAR RETEST (QA) ================= -->
+<app-modal [isOpen]="mostrarModalRetest" [maxWidth]="'680px'" (close)="cerrarModalRetest()">
+  <div class="modal-form-box" *ngIf="incidenciaSeleccionada">
+    <div class="modal-form-header">
+      <div class="modal-header-left">
+        <div class="modal-header-icon retest-modal-icon">
+          <span class="material-symbols-outlined">published_with_changes</span>
+        </div>
+        <div>
+          <h2>Ejecutar Retest de Validación</h2>
+          <p>{{ incidenciaSeleccionada.codigo }} — {{ incidenciaSeleccionada.titulo }}</p>
+        </div>
+      </div>
+      <button class="modal-close-btn" type="button" (click)="cerrarModalRetest()">
+        <span class="material-symbols-outlined">close</span>
+      </button>
+    </div>
+
+    <div class="modal-form-body">
+      <!-- Selector de Calificación del Retest -->
+      <div class="modal-section">
+        <div class="modal-section-title">
+          <span class="material-symbols-outlined">fact_check</span>
+          <span>Calificación del Retest *</span>
+        </div>
+
+        <div class="retest-decision-grid">
+          <button
+            type="button"
+            class="retest-decision-btn btn-pass"
+            [class.selected]="retestForm.resultado === 'APROBADO'"
+            (click)="retestForm.resultado = 'APROBADO'"
+          >
+            <span class="material-symbols-outlined">check_circle</span>
+            <strong>APROBADO</strong>
+            <small>El fix funciona. La incidencia se cerrará formalmente (RN-007).</small>
+          </button>
+
+          <button
+            type="button"
+            class="retest-decision-btn btn-fail"
+            [class.selected]="retestForm.resultado === 'FALLIDO'"
+            (click)="retestForm.resultado = 'FALLIDO'"
+          >
+            <span class="material-symbols-outlined">cancel</span>
+            <strong>FALLIDO</strong>
+            <small>El bug persiste. Se devolverá a desarrollo con motivo de reapertura.</small>
+          </button>
+        </div>
+      </div>
+
+      <!-- Observaciones del Retest -->
+      <div class="modal-section">
+        <div class="modal-section-title">
+          <span class="material-symbols-outlined">comment</span>
+          <span>Observaciones / Evidencia del Retest</span>
+        </div>
+        <label class="full-label">
+          <textarea
+            [(ngModel)]="retestForm.observaciones"
+            rows="3"
+            placeholder="Anota detalles de la prueba de comprobación o motivo por el que falló..."
+          ></textarea>
+        </label>
+      </div>
+    </div>
+
+    <div class="modal-form-footer">
+      <button class="btn-ghost-lg" type="button" (click)="cerrarModalRetest()">Cancelar</button>
+      <button class="btn-primary-lg" type="button" [disabled]="guardandoRetest" (click)="guardarRetest()">
+        <span class="material-symbols-outlined">save</span>
+        {{ guardandoRetest ? 'Procesando...' : 'Confirmar Retest' }}
+      </button>
+    </div>
+  </div>
+</app-modal>
+
+<!-- ================= MODAL 3: REAPERTURA MANUAL CON AUDITORÍA (RN-008) ================= -->
+<app-modal [isOpen]="mostrarModalReapertura" [maxWidth]="'600px'" (close)="cerrarModalReapertura()">
+  <div class="modal-form-box" *ngIf="incidenciaSeleccionada">
+    <div class="modal-form-header">
+      <div class="modal-header-left">
+        <div class="modal-header-icon reopen-modal-icon">
+          <span class="material-symbols-outlined">replay</span>
+        </div>
+        <div>
+          <h2>Reapertura de Incidencia Cerrada</h2>
+          <p>{{ incidenciaSeleccionada.codigo }} — {{ incidenciaSeleccionada.titulo }}</p>
+        </div>
+      </div>
+      <button class="modal-close-btn" type="button" (click)="cerrarModalReapertura()">
+        <span class="material-symbols-outlined">close</span>
+      </button>
+    </div>
+
+    <div class="modal-form-body">
+      <div class="alert-info-box">
+        <span class="material-symbols-outlined">shield</span>
+        <span>Según la regla <strong>RN-008</strong>, para modificar una incidencia cerrada se debe registrar obligatoriamente el motivo para auditoría.</span>
+      </div>
+
+      <div class="modal-section">
+        <label class="full-label">
+          Motivo de la reapertura *
+          <textarea
+            [(ngModel)]="reaperturaForm.motivo"
+            rows="4"
+            placeholder="Explica detalladamente por qué se reabre esta incidencia ya cerrada..."
+          ></textarea>
+        </label>
+      </div>
+    </div>
+
+    <div class="modal-form-footer">
+      <button class="btn-ghost-lg" type="button" (click)="cerrarModalReapertura()">Cancelar</button>
+      <button class="btn-primary-lg" type="button" [disabled]="guardandoReapertura" (click)="guardarReapertura()">
+        <span class="material-symbols-outlined">replay</span>
+        {{ guardandoReapertura ? 'Reabriendo...' : 'Reabrir Incidencia' }}
+      </button>
+    </div>
+  </div>
+</app-modal>
+
+<!-- ================= MODAL 4: HISTORIAL COMPLETO DE TRAZABILIDAD ================= -->
+<app-modal [isOpen]="mostrarModalHistorial" [maxWidth]="'780px'" (close)="cerrarModalHistorial()">
+  <div class="modal-form-box" *ngIf="incidenciaSeleccionada">
+    <div class="modal-form-header">
+      <div class="modal-header-left">
+        <div class="modal-header-icon history-modal-icon">
+          <span class="material-symbols-outlined">timeline</span>
+        </div>
+        <div>
+          <h2>Trazabilidad de Correcciones y Retests</h2>
+          <p>{{ incidenciaSeleccionada.codigo }} — {{ incidenciaSeleccionada.titulo }}</p>
+        </div>
+      </div>
+      <button class="modal-close-btn" type="button" (click)="cerrarModalHistorial()">
+        <span class="material-symbols-outlined">close</span>
+      </button>
+    </div>
+
+    <div class="modal-form-body">
+      <div class="loading-overlay" *ngIf="cargandoHistorial">
+        <span class="material-symbols-outlined spin">progress_activity</span>
+      </div>
+
+      <!-- Sección Intentos de Retest -->
+      <div class="history-block">
+        <div class="history-block-title">
+          <span class="material-symbols-outlined">fact_check</span>
+          <h4>Intentos de Retest ({{ historialRetestsList.length }})</h4>
+        </div>
+        <div class="timeline-list" *ngIf="historialRetestsList.length">
+          <div class="timeline-card" *ngFor="let r of historialRetestsList">
+            <div class="timeline-top">
+              <span class="attempt-badge">Intento #{{ r.intentoNumero }}</span>
+              <span class="status-badge" [class.badge-pass]="r.resultado === 'APROBADO'" [class.badge-fail]="r.resultado === 'FALLIDO'">
+                <span class="material-symbols-outlined badge-icon">
+                  {{ r.resultado === 'APROBADO' ? 'check_circle' : 'cancel' }}
+                </span>
+                {{ r.resultado }}
+              </span>
+              <span class="timeline-date">{{ r.fecha | date:'dd/MM/yyyy HH:mm' }}</span>
+            </div>
+            <div class="timeline-meta">
+              <span>Tester: <strong>{{ r.testerNombre || 'Sin asignar' }}</strong></span>
+            </div>
+            <p class="timeline-text" *ngIf="r.observaciones">
+              <em>"{{ r.observaciones }}"</em>
+            </p>
+          </div>
+        </div>
+        <div class="empty-timeline" *ngIf="!historialRetestsList.length">
+          No se han registrado intentos de retest para esta incidencia.
+        </div>
+      </div>
+
+      <!-- Sección Correcciones Aplicadas (Fixes) -->
+      <div class="history-block">
+        <div class="history-block-title">
+          <span class="material-symbols-outlined">code</span>
+          <h4>Fixes Aplicados por Desarrollo ({{ historialCorreccionesList.length }})</h4>
+        </div>
+        <div class="timeline-list" *ngIf="historialCorreccionesList.length">
+          <div class="timeline-card" *ngFor="let c of historialCorreccionesList">
+            <div class="timeline-top">
+              <strong>{{ c.desarrolladorNombre || 'Desarrollador' }}</strong>
+              <span class="timeline-date">{{ c.fecha | date:'dd/MM/yyyy HH:mm' }}</span>
+            </div>
+            <div class="timeline-meta" *ngIf="c.rama || c.commitHash || c.versionCodigo">
+              <span class="code-chip" *ngIf="c.rama">Rama: {{ c.rama }}</span>
+              <span class="code-chip" *ngIf="c.commitHash">Commit: {{ c.commitHash.slice(0, 8) }}</span>
+              <span class="code-chip" *ngIf="c.versionCodigo">Build: {{ c.versionCodigo }}</span>
+            </div>
+            <p class="timeline-text">{{ c.descripcion }}</p>
+          </div>
+        </div>
+        <div class="empty-timeline" *ngIf="!historialCorreccionesList.length">
+          No hay fixes registrados aún.
+        </div>
+      </div>
+
+      <!-- Sección Auditoría de Reaperturas -->
+      <div class="history-block" *ngIf="historialReaperturasList.length">
+        <div class="history-block-title">
+          <span class="material-symbols-outlined">replay</span>
+          <h4>Auditoría de Reaperturas ({{ historialReaperturasList.length }})</h4>
+        </div>
+        <div class="timeline-list">
+          <div class="timeline-card reopen-card" *ngFor="let rep of historialReaperturasList">
+            <div class="timeline-top">
+              <span class="reopen-badge">Reapertura</span>
+              <span>Por: <strong>{{ rep.usuarioNombre }}</strong></span>
+              <span class="timeline-date">{{ rep.fecha | date:'dd/MM/yyyy HH:mm' }}</span>
+            </div>
+            <p class="timeline-text">Motivo: <em>{{ rep.motivo }}</em></p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal-form-footer">
+      <button class="btn-ghost-lg" type="button" (click)="cerrarModalHistorial()">Cerrar</button>
+    </div>
+  </div>
+</app-modal>
+

@@ -1,0 +1,174 @@
+<div class="page-shell">
+
+  <!-- Header -->
+  <div class="page-header">
+    <div class="page-header-left">
+      <a routerLink="/usuarios" class="back-btn">
+        <span class="material-symbols-outlined">arrow_back</span>
+      </a>
+      <div>
+        <h1 class="page-title">{{ modoEdicion ? 'Editar usuario' : 'Nuevo usuario' }}</h1>
+        <p class="page-subtitle">{{ modoEdicion ? 'Modifica los datos del usuario seleccionado.' : 'Completa los datos para crear un nuevo usuario en el sistema.' }}</p>
+      </div>
+    </div>
+    <div class="breadcrumb">
+      <a routerLink="/usuarios" class="bc-link">Usuarios</a>
+      <span class="material-symbols-outlined bc-sep">chevron_right</span>
+      <span class="bc-current">{{ modoEdicion ? 'Editar' : 'Nuevo' }}</span>
+    </div>
+  </div>
+
+  <!-- Loading skeleton -->
+  <div class="skeleton-card" *ngIf="loadingDatos">
+    <div class="sk-row sk-title"></div>
+    <div class="sk-row sk-sub"></div>
+    <div class="sk-row sk-full"></div>
+    <div class="sk-row sk-full"></div>
+    <div class="sk-row sk-half"></div>
+  </div>
+
+  <!-- Form -->
+  <form class="form-layout" (ngSubmit)="onSubmit()" #usuarioForm="ngForm" *ngIf="!loadingDatos">
+
+    <!-- Datos personales -->
+    <div class="form-section">
+      <div class="section-header">
+        <span class="material-symbols-outlined section-icon">person</span>
+        <div>
+          <h2 class="section-title">Datos personales</h2>
+          <p class="section-sub">Informaci&oacute;n b&aacute;sica del usuario</p>
+        </div>
+      </div>
+
+      <div class="fields-grid">
+        <div class="field">
+          <label class="field-label" for="nombres">Nombres <span class="req-mark">*</span></label>
+          <div class="input-wrapper">
+            <span class="material-symbols-outlined input-icon">badge</span>
+            <input id="nombres" type="text" class="input" placeholder="Ej: Juan Carlos"
+              [(ngModel)]="form.nombres" name="nombres" required />
+          </div>
+        </div>
+
+        <div class="field">
+          <label class="field-label" for="apellidos">Apellidos <span class="req-mark">*</span></label>
+          <div class="input-wrapper">
+            <span class="material-symbols-outlined input-icon">badge</span>
+            <input id="apellidos" type="text" class="input" placeholder="Ej: Gomez Perez"
+              [(ngModel)]="form.apellidos" name="apellidos" required />
+          </div>
+        </div>
+
+        <div class="field field-full">
+          <label class="field-label" for="correo">Correo electr&oacute;nico <span class="req-mark">*</span></label>
+          <div class="input-wrapper">
+            <span class="material-symbols-outlined input-icon">alternate_email</span>
+            <input id="correo" type="email" class="input" placeholder="usuario@qatrace.com"
+              [(ngModel)]="form.correo" name="correo" required />
+          </div>
+        </div>
+
+        <div class="field field-full">
+          <label class="field-label" for="password">
+            Contrase&ntilde;a {{ modoEdicion ? '(dejar en blanco para no cambiar)' : '' }}
+            <span class="req-mark" *ngIf="!modoEdicion">*</span>
+          </label>
+          <div class="input-wrapper">
+            <span class="material-symbols-outlined input-icon">key</span>
+            <input id="password" [type]="showPassword ? 'text' : 'password'" class="input input-password-right"
+              placeholder="M&iacute;nimo 8 caracteres"
+              [(ngModel)]="form.password" name="password" [required]="!modoEdicion" />
+            <button type="button" class="toggle-password" (click)="togglePassword()">
+              <span class="material-symbols-outlined">{{ showPassword ? 'visibility_off' : 'visibility' }}</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Estado y configuracion -->
+    <div class="form-section">
+      <div class="section-header">
+        <span class="material-symbols-outlined section-icon">tune</span>
+        <div>
+          <h2 class="section-title">Configuraci&oacute;n de cuenta</h2>
+          <p class="section-sub">Estado y restricciones del usuario</p>
+        </div>
+      </div>
+
+      <div class="fields-grid">
+        <div class="field">
+          <label class="field-label" for="estado">Estado de la cuenta <span class="req-mark">*</span></label>
+          <div class="input-wrapper">
+            <span class="material-symbols-outlined input-icon">toggle_on</span>
+            <select id="estado" class="input input-select" [(ngModel)]="form.estado" name="estado">
+              <option value="ACTIVO">Activo</option>
+              <option value="INACTIVO">Inactivo</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="field">
+          <label class="field-label">Opciones de seguridad</label>
+          <div class="toggle-card">
+            <div class="toggle-row">
+              <div class="toggle-info">
+                <span class="material-symbols-outlined toggle-ic">lock_reset</span>
+                <div>
+                  <p class="toggle-name">Forzar cambio de contrase&ntilde;a</p>
+                  <p class="toggle-desc">El usuario deber&aacute; cambiar su clave en el pr&oacute;ximo acceso</p>
+                </div>
+              </div>
+              <label class="switch">
+                <input type="checkbox" [(ngModel)]="form.debeCambiarPassword" name="debeCambiarPassword" />
+                <span class="slider"></span>
+              </label>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Roles -->
+    <div class="form-section">
+      <div class="section-header">
+        <span class="material-symbols-outlined section-icon">admin_panel_settings</span>
+        <div>
+          <h2 class="section-title">Roles y permisos</h2>
+          <p class="section-sub">Asigna los roles que este usuario tendr&aacute; en el sistema</p>
+        </div>
+      </div>
+
+      <div class="roles-grid">
+        <label class="role-card" *ngFor="let rol of roles" [class.role-card-active]="tieneRol(rol.id)" (click)="toggleRol(rol.id)">
+          <div class="role-card-left">
+            <span class="material-symbols-outlined role-card-icon" [class.role-icon-active]="tieneRol(rol.id)">shield</span>
+            <div>
+              <p class="role-card-name">{{ rol.nombre }}</p>
+              <p class="role-card-desc" *ngIf="rol.descripcion">{{ rol.descripcion }}</p>
+            </div>
+          </div>
+          <div class="role-checkbox" [class.role-checked]="tieneRol(rol.id)">
+            <span class="material-symbols-outlined filled" *ngIf="tieneRol(rol.id)">check_circle</span>
+            <span class="material-symbols-outlined" *ngIf="!tieneRol(rol.id)">radio_button_unchecked</span>
+          </div>
+        </label>
+
+        <div class="no-roles" *ngIf="roles.length === 0">
+          <span class="material-symbols-outlined">info</span>
+          <span>No hay roles disponibles</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Actions -->
+    <div class="form-actions">
+      <a routerLink="/usuarios" class="btn-ghost-lg">Cancelar</a>
+      <button type="submit" class="btn-primary-lg" [disabled]="loading || usuarioForm.invalid">
+        <span class="material-symbols-outlined spin btn-icon" *ngIf="loading">progress_activity</span>
+        <span class="material-symbols-outlined filled btn-icon" *ngIf="!loading">{{ modoEdicion ? 'save' : 'person_add' }}</span>
+        <span>{{ loading ? 'Guardando...' : (modoEdicion ? 'Guardar cambios' : 'Crear usuario') }}</span>
+      </button>
+    </div>
+  </form>
+</div>

@@ -1,0 +1,332 @@
+<div class="page-shell">
+  <!-- Cabecera -->
+  <div class="page-header">
+    <div>
+      <h1 class="page-title">Matriz de Trazabilidad y Cobertura</h1>
+      <p class="page-subtitle">
+        Visualiza la cobertura de pruebas extremo a extremo: Requerimientos &rarr; Casos de Prueba &rarr; Ejecuciones &rarr; Incidencias.
+      </p>
+    </div>
+    <div class="header-actions">
+      <button
+        class="btn-primary-sm"
+        (click)="exportarCsv()"
+        [disabled]="exportando || !filtroProyecto"
+      >
+        <span class="material-symbols-outlined">download</span>
+        {{ exportando ? 'Exportando...' : 'Exportar CSV' }}
+      </button>
+    </div>
+  </div>
+
+  <!-- Barra de Filtros Principales -->
+  <div class="filters-bar">
+    <div class="search-wrapper">
+      <span class="material-symbols-outlined search-icon">search</span>
+      <input
+        class="search-input"
+        placeholder="Buscar por código, descripción o módulo..."
+        [(ngModel)]="filtroBusqueda"
+        (input)="aplicarFiltroLocal()"
+      />
+    </div>
+
+    <div class="filter-select">
+      <app-select-search
+        [options]="opcionesProyectos()"
+        placeholder="Selecciona un proyecto..."
+        [behaveAsSelect]="true"
+        [value]="toValue(filtroProyecto)"
+        (valueChange)="seleccionarProyecto($event)"
+      ></app-select-search>
+    </div>
+
+    <div class="filter-select" *ngIf="filtroProyecto && modulos.length > 0">
+      <app-select-search
+        [options]="opcionesModulos()"
+        placeholder="Todos los módulos"
+        [behaveAsSelect]="true"
+        [value]="toValue(filtroModulo)"
+        (valueChange)="seleccionarModulo($event)"
+       [allowClear]="true"></app-select-search>
+    </div>
+  </div>
+
+  <!-- Tarjetas KPI de Resumen -->
+  <div class="kpi-grid" *ngIf="resumen">
+    <div class="kpi-card">
+      <div class="kpi-icon-wrapper kpi-primary">
+        <span class="material-symbols-outlined">list_alt</span>
+      </div>
+      <div class="kpi-content">
+        <span class="kpi-label">Total Requerimientos</span>
+        <span class="kpi-value">{{ resumen.totalRequerimientos }}</span>
+        <span class="kpi-sub">{{ resumen.requerimientosConCobertura }} con casos definidos</span>
+      </div>
+    </div>
+
+    <div class="kpi-card">
+      <div class="kpi-icon-wrapper kpi-info">
+        <span class="material-symbols-outlined">pie_chart</span>
+      </div>
+      <div class="kpi-content">
+        <span class="kpi-label">Cobertura de Pruebas</span>
+        <span class="kpi-value">{{ resumen.porcentajeCobertura }}%</span>
+        <div class="progress-bar-container">
+          <div
+            class="progress-bar-fill"
+            [style.width.%]="resumen.porcentajeCobertura"
+            [class.bg-danger]="resumen.porcentajeCobertura < 50"
+            [class.bg-warning]="resumen.porcentajeCobertura >= 50 && resumen.porcentajeCobertura < 80"
+            [class.bg-success]="resumen.porcentajeCobertura >= 80"
+          ></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="kpi-card">
+      <div class="kpi-icon-wrapper kpi-success">
+        <span class="material-symbols-outlined">task_alt</span>
+      </div>
+      <div class="kpi-content">
+        <span class="kpi-label">Aprobados (100% OK)</span>
+        <span class="kpi-value">{{ resumen.requerimientosAprobados }}</span>
+        <span class="kpi-sub">Listos para pase a producción</span>
+      </div>
+    </div>
+
+    <div class="kpi-card" [class.kpi-alert]="resumen.requerimientosFallidos > 0">
+      <div class="kpi-icon-wrapper kpi-error">
+        <span class="material-symbols-outlined">bug_report</span>
+      </div>
+      <div class="kpi-content">
+        <span class="kpi-label">Fallidos / Con Defectos</span>
+        <span class="kpi-value">{{ resumen.requerimientosFallidos }}</span>
+        <span class="kpi-sub">Con incidencias o pruebas fallidas</span>
+      </div>
+    </div>
+
+    <div class="kpi-card" [class.kpi-alert]="resumen.requerimientosSinCobertura > 0">
+      <div class="kpi-icon-wrapper kpi-danger">
+        <span class="material-symbols-outlined">warning</span>
+      </div>
+      <div class="kpi-content">
+        <span class="kpi-label">Sin Cobertura</span>
+        <span class="kpi-value">{{ resumen.requerimientosSinCobertura }}</span>
+        <span class="kpi-sub">0 casos de prueba asignados</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Pestañas de Filtro por Cobertura -->
+  <div class="coverage-tabs" *ngIf="resumen">
+    <button
+      class="tab-btn"
+      [class.active]="filtroCobertura === ''"
+      (click)="cambiarCobertura('')"
+    >
+      <span class="material-symbols-outlined">apps</span>
+      <span>Todos ({{ resumen.totalRequerimientos }})</span>
+    </button>
+
+    <button
+      class="tab-btn"
+      [class.active]="filtroCobertura === 'APROBADO'"
+      (click)="cambiarCobertura('APROBADO')"
+    >
+      <span class="material-symbols-outlined text-success">check_circle</span>
+      <span>Aprobados ({{ resumen.requerimientosAprobados }})</span>
+    </button>
+
+    <button
+      class="tab-btn"
+      [class.active]="filtroCobertura === 'FALLIDO'"
+      (click)="cambiarCobertura('FALLIDO')"
+    >
+      <span class="material-symbols-outlined text-danger">cancel</span>
+      <span>Fallidos ({{ resumen.requerimientosFallidos }})</span>
+    </button>
+
+    <button
+      class="tab-btn"
+      [class.active]="filtroCobertura === 'PENDIENTE'"
+      (click)="cambiarCobertura('PENDIENTE')"
+    >
+      <span class="material-symbols-outlined text-warning">pending</span>
+      <span>Pendientes ({{ resumen.requerimientosPendientes }})</span>
+    </button>
+
+    <button
+      class="tab-btn"
+      [class.active]="filtroCobertura === 'SIN_COBERTURA'"
+      (click)="cambiarCobertura('SIN_COBERTURA')"
+    >
+      <span class="material-symbols-outlined text-danger">error</span>
+      <span>Sin Cobertura ({{ resumen.requerimientosSinCobertura }})</span>
+    </button>
+  </div>
+
+  <!-- Estado de Carga / Error -->
+  <div *ngIf="cargando" class="loading-state">
+    <div class="spinner"></div>
+    <p>Calculando matriz de trazabilidad cruzada...</p>
+  </div>
+
+  <div *ngIf="error" class="error-banner">
+    <span class="material-symbols-outlined">error</span>
+    <span>{{ error }}</span>
+  </div>
+
+  <!-- Tabla de Trazabilidad -->
+  <div class="table-container" *ngIf="!cargando && resumen">
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th style="width: 140px;">Requerimiento</th>
+          <th>Descripción</th>
+          <th style="width: 130px;">Módulo</th>
+          <th style="width: 160px; text-align: center;">Casos Asociados</th>
+          <th style="width: 170px; text-align: center;">Estado Cobertura</th>
+        </tr>
+      </thead>
+      <tbody>
+        <ng-container *ngFor="let fila of filasFiltradas">
+          <tr
+            class="row-main"
+            [ngClass]="getCssFila(fila.coberturaEstado)"
+            (click)="abrirDetalle(fila)"
+          >
+            <td>
+              <span class="req-code">{{ fila.requerimientoCodigo }}</span>
+            </td>
+            <td>
+              <div class="req-desc">{{ fila.requerimientoDescripcion }}</div>
+            </td>
+            <td>
+              <span class="module-badge" *ngIf="fila.moduloNombre">{{ fila.moduloNombre }}</span>
+              <span class="text-muted" *ngIf="!fila.moduloNombre">—</span>
+            </td>
+            <td style="text-align: center;">
+              <div class="test-counts">
+                <span class="count-pill count-total" title="Total de casos">{{ fila.totalCasos }}</span>
+                <span class="count-pill count-ok" *ngIf="fila.casosAprobados > 0" title="Aprobados">{{ fila.casosAprobados }} ok</span>
+                <span class="count-pill count-fail" *ngIf="fila.casosFallidos > 0" title="Fallidos">{{ fila.casosFallidos }} fail</span>
+                <span class="count-pill count-pend" *ngIf="fila.casosPendientes > 0" title="Pendientes">{{ fila.casosPendientes }} pend</span>
+              </div>
+            </td>
+            <td style="text-align: center;">
+              <span class="coverage-badge" [ngClass]="getCssCobertura(fila.coberturaEstado)">
+                {{ getTextoCobertura(fila.coberturaEstado) }}
+              </span>
+            </td>
+          </tr>
+        </ng-container>
+
+        <!-- Vacío -->
+        <tr *ngIf="filasFiltradas.length === 0">
+          <td colspan="5" class="empty-state">
+            <span class="material-symbols-outlined empty-icon">search_off</span>
+            <p>No se encontraron requerimientos para los criterios seleccionados.</p>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+  <!-- Modal de detalle del requerimiento -->
+  <div class="modal-overlay" *ngIf="filaDetalle" (click)="cerrarDetalle()">
+    <div class="modal-box" (click)="$event.stopPropagation()">
+      <div class="modal-head">
+        <div class="modal-head-info">
+          <span class="req-code">{{ filaDetalle.requerimientoCodigo }}</span>
+          <span class="coverage-badge" [ngClass]="getCssCobertura(filaDetalle.coberturaEstado)">
+            {{ getTextoCobertura(filaDetalle.coberturaEstado) }}
+          </span>
+          <p class="modal-desc">{{ filaDetalle.requerimientoDescripcion }}</p>
+        </div>
+        <button class="modal-close" type="button" (click)="cerrarDetalle()" title="Cerrar">
+          <span class="material-symbols-outlined">close</span>
+        </button>
+      </div>
+      <div class="modal-body">
+        
+        <div class="cases-panel">
+                <div class="cases-header">
+                  <span class="cases-title">
+                    <span class="material-symbols-outlined">science</span>
+                    Casos de Prueba Vinculados ({{ filaDetalle.casos.length }})
+                  </span>
+                </div>
+
+                <div *ngIf="filaDetalle.casos.length === 0" class="no-cases-alert">
+                  <span class="material-symbols-outlined">warning</span>
+                  <div>
+                    <strong>Requerimiento sin cobertura de pruebas:</strong>
+                    No se han registrado casos de prueba activos para este requerimiento. Asigne casos de prueba en el módulo de Casos de Prueba para mitigar riesgos de calidad.
+                  </div>
+                </div>
+
+                <div class="cases-list" *ngIf="filaDetalle.casos.length > 0">
+                  <div class="case-card" *ngFor="let caso of filaDetalle.casos">
+                    <div class="case-header">
+                      <div class="case-info">
+                        <span class="case-code">{{ caso.codigo }}</span>
+                        <span class="case-name">{{ caso.nombre }}</span>
+                        <span class="badge-prioridad">{{ caso.prioridad }}</span>
+                        <span class="badge-tipo">{{ caso.tipo }}</span>
+                      </div>
+                      <div class="case-tester" *ngIf="caso.testerAsignado">
+                        <span class="material-symbols-outlined">person</span>
+                        {{ caso.testerAsignado }}
+                      </div>
+                    </div>
+
+                    <!-- Detalle de la Última Ejecución -->
+                    <div class="execution-info">
+                      <div *ngIf="caso.ultimaEjecucion" class="exec-summary">
+                        <span class="exec-label">Última ejecución:</span>
+                        <span class="result-badge" [ngClass]="getBadgeResultado(caso.ultimaEjecucion.resultado)">
+                          {{ caso.ultimaEjecucion.resultado }}
+                        </span>
+                        <span class="exec-date" *ngIf="caso.ultimaEjecucion.fecha">
+                          {{ caso.ultimaEjecucion.fecha | date:'dd/MM/yyyy HH:mm' }}
+                        </span>
+                        <span class="exec-env" *ngIf="caso.ultimaEjecucion.ambiente">
+                          Ambiente: <strong>{{ caso.ultimaEjecucion.ambiente }}</strong>
+                        </span>
+                        <span class="exec-dur" *ngIf="caso.ultimaEjecucion.duracionSegundos">
+                          Duración: {{ caso.ultimaEjecucion.duracionSegundos }}s
+                        </span>
+                      </div>
+
+                      <div *ngIf="!caso.ultimaEjecucion" class="exec-empty">
+                        <span class="material-symbols-outlined">schedule</span>
+                        <span>Caso sin ejecuciones registradas todavía.</span>
+                      </div>
+
+                      <!-- Incidencias Abiertas de la Ejecución -->
+                      <div
+                        class="bugs-container"
+                        *ngIf="caso.ultimaEjecucion && caso.ultimaEjecucion.incidencias && caso.ultimaEjecucion.incidencias.length > 0"
+                      >
+                        <div class="bugs-title">
+                          <span class="material-symbols-outlined text-danger">bug_report</span>
+                          <span>Defectos abiertos detectados ({{ caso.ultimaEjecucion.incidencias.length }}):</span>
+                        </div>
+                        <div class="bugs-list">
+                          <div class="bug-chip" *ngFor="let bug of caso.ultimaEjecucion.incidencias">
+                            <span class="bug-code">{{ bug.codigo }}</span>
+                            <span class="bug-title">{{ bug.titulo }}</span>
+                            <span class="bug-sev">{{ bug.severidad }}</span>
+                            <span class="bug-state">{{ bug.estado }}</span>
+                            <span class="bug-resp" *ngIf="bug.responsable">({{ bug.responsable }})</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+      </div>
+    </div>
+  </div>
+</div>

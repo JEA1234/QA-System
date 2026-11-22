@@ -1,0 +1,106 @@
+<div class="login-page">
+  <div class="login-card">
+    <!-- Decorative blurs -->
+    <div class="blur-circle blur-top"></div>
+    <div class="blur-circle blur-bottom"></div>
+
+    <!-- Header -->
+    <div class="login-header">
+      <div class="logo-box">
+        <img src="assets/logo.svg" alt="QA System Logo" class="logo-img" />
+      </div>
+
+      <div class="security-badge">
+        <span class="material-symbols-outlined filled badge-icon">lock</span>
+        <span class="badge-text">AUTENTICACI&Oacute;N CIFRADA TLS / OAUTH2</span>
+      </div>
+
+      <h1 class="login-title">Bienvenido de nuevo</h1>
+      <p class="login-subtitle">
+        Ingresa tus credenciales para acceder a la plataforma de aseguramiento de calidad
+      </p>
+    </div>
+
+    <!-- Form -->
+    <form class="login-form" (ngSubmit)="onSubmit()" #loginForm="ngForm">
+
+      <!-- Alert feedback -->
+      <div class="alert-box" *ngIf="showAlert">
+        <div class="alert-content">
+          <span class="material-symbols-outlined filled alert-icon">error</span>
+          <div class="alert-text">
+            <p class="alert-title">{{ alertTitle }}</p>
+            <p class="alert-desc">{{ alertDesc }}</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Email field -->
+      <div class="field">
+        <label class="field-label" for="email">
+          <span>Correo</span>
+        </label>
+        <div class="input-wrapper">
+          <span class="material-symbols-outlined input-icon">mail</span>
+          <input id="email" type="email" class="input" placeholder="ejemplo@partnertech.com" [(ngModel)]="correo"
+            name="correo" required autocomplete="email" />
+        </div>
+      </div>
+
+      <!-- Password field -->
+      <div class="field">
+        <div class="field-label-row">
+          <label class="field-label" for="password">Contrase&ntilde;a</label>
+        </div>
+        <div class="input-wrapper">
+          <span class="material-symbols-outlined input-icon">key</span>
+          <input id="password" [type]="showPassword ? 'text' : 'password'" class="input input-password"
+            placeholder="&#x2022;&#x2022;&#x2022;&#x2022;&#x2022;&#x2022;&#x2022;&#x2022;&#x2022;&#x2022;&#x2022;&#x2022;"
+            [(ngModel)]="password" name="password" required autocomplete="current-password" />
+          <button type="button" class="toggle-password" (click)="togglePassword()"
+            title="Mostrar u ocultar contrase&ntilde;a">
+            <span class="material-symbols-outlined">
+              {{ showPassword ? 'visibility_off' : 'visibility' }}
+            </span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Remember + Forgot -->
+      <div class="form-options">
+        <label class="remember-label">
+          <input type="checkbox" [(ngModel)]="recordar" name="recordar" class="checkbox" />
+          <span>Recordar este equipo (30 d&iacute;as)</span>
+        </label>
+        <a routerLink="/forgot-password" class="forgot-link">&iquest;Olvidaste tu contrase&ntilde;a?</a>
+      </div>
+
+      <!-- Submit -->
+      <button type="submit" class="btn-primary" [disabled]="loading || bloqueado" [class.btn-loading]="loading"
+        [class.btn-disabled]="bloqueado">
+        <span class="material-symbols-outlined filled btn-icon" *ngIf="!loading">login</span>
+        <span class="material-symbols-outlined spin btn-icon" *ngIf="loading">progress_activity</span>
+        <span>{{ loading ? 'Validando credenciales...' : 'Iniciar Sesi&oacute;n' }}</span>
+      </button>
+
+      <!-- Security info -->
+      <div class="info-box">
+        <span class="material-symbols-outlined info-icon">verified_user</span>
+        <p class="info-text">
+          Protegido con pol&iacute;ticas de seguridad corporativas.
+          <strong>3 intentos fallidos</strong> bloquear&aacute;n temporalmente la cuenta por 30 min.
+        </p>
+      </div>
+    </form>
+
+    <!-- Footer -->
+    <div class="login-footer">
+      <div class="footer-meta">
+        <span>Entorno: Producci&oacute;n</span>
+        <span class="dot">&bull;</span>
+        <span>SSO Integrado</span>
+      </div>
+      <p class="footer-copy">&copy; 2026 QA System &bull; Partner Tech &bull; v1.4.0</p>
+    </div>
+  </div>
+</div>

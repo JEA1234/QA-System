@@ -1,0 +1,349 @@
+<div class="page-shell">
+  <!-- Cabecera -->
+  <div class="page-header">
+    <div>
+      <h1 class="page-title">Configuración del Sistema</h1>
+      <p class="page-subtitle">
+        Gestiona parámetros institucionales, SLAs de defectos, umbrales de calidad para release y catálogos dinámicos.
+      </p>
+    </div>
+    <div class="header-actions" *ngIf="activeTab !== 'CATALOGOS'">
+      <button
+        class="btn-outline-sm"
+        type="button"
+        (click)="restablecerCambios()"
+        [disabled]="!hayCambiosPendientes() || guardando"
+      >
+        <span class="material-symbols-outlined">restart_alt</span>
+        <span>Descartar</span>
+      </button>
+      <button
+        class="btn-primary-sm"
+        type="button"
+        (click)="guardarConfiguraciones()"
+        [disabled]="!hayCambiosPendientes() || guardando"
+      >
+        <span class="material-symbols-outlined">save</span>
+        <span>{{ guardando ? 'Guardando...' : 'Guardar Cambios' }}</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- Alertas -->
+  <div *ngIf="mensajeExito" class="success-banner">
+    <span class="material-symbols-outlined">check_circle</span>
+    <span>{{ mensajeExito }}</span>
+  </div>
+
+  <div *ngIf="error" class="error-banner">
+    <span class="material-symbols-outlined">error</span>
+    <span>{{ error }}</span>
+  </div>
+
+  <!-- Pestañas de Navegación de Configuración -->
+  <div class="settings-tabs">
+    <button
+      class="tab-btn"
+      [class.active]="activeTab === 'GENERAL'"
+      (click)="cambiarTab('GENERAL')"
+    >
+      <span class="material-symbols-outlined">business</span>
+      <span>General y Organización</span>
+    </button>
+
+    <button
+      class="tab-btn"
+      [class.active]="activeTab === 'SLA'"
+      (click)="cambiarTab('SLA')"
+    >
+      <span class="material-symbols-outlined">timer</span>
+      <span>Políticas SLA y Defectos</span>
+    </button>
+
+    <button
+      class="tab-btn"
+      [class.active]="activeTab === 'CALIDAD'"
+      (click)="cambiarTab('CALIDAD')"
+    >
+      <span class="material-symbols-outlined">verified</span>
+      <span>Criterios de Calidad UAT</span>
+    </button>
+
+    <button
+      class="tab-btn"
+      [class.active]="activeTab === 'SEGURIDAD'"
+      (click)="cambiarTab('SEGURIDAD')"
+    >
+      <span class="material-symbols-outlined">security</span>
+      <span>Seguridad y Sesión</span>
+    </button>
+
+    <button
+      class="tab-btn"
+      [class.active]="activeTab === 'CATALOGOS'"
+      (click)="cambiarTab('CATALOGOS')"
+    >
+      <span class="material-symbols-outlined">category</span>
+      <span>Catálogos Dinámicos</span>
+    </button>
+  </div>
+
+  <!-- ESTADO DE CARGA -->
+  <div *ngIf="cargando" class="loading-state">
+    <div class="spinner"></div>
+    <p>Cargando parámetros del sistema...</p>
+  </div>
+
+  <!-- CONTENIDO DE PESTAÑAS DE CONFIGURACIÓN -->
+  <div class="settings-content" *ngIf="!cargando && activeTab !== 'CATALOGOS'">
+    <div class="settings-card" *ngFor="let config of getConfiguracionesPorCategoria(activeTab)">
+      <div class="setting-info">
+        <div class="setting-title-row">
+          <span class="setting-name">{{ config.clave }}</span>
+          <span class="setting-badge">{{ config.categoria }}</span>
+        </div>
+        <p class="setting-desc">{{ config.descripcion }}</p>
+        <span class="setting-updated" *ngIf="config.fechaActualizacion">
+          Última actualización: {{ config.fechaActualizacion | date:'dd/MM/yyyy HH:mm' }}
+        </span>
+      </div>
+
+      <div class="setting-input-wrapper">
+        <!-- Input Booleano -->
+        <ng-container *ngIf="config.tipoDato === 'BOOLEAN'">
+          <label class="switch-toggle">
+            <input
+              type="checkbox"
+              [checked]="valoresEditados[config.clave] === 'true'"
+              (change)="valoresEditados[config.clave] = $any($event.target).checked ? 'true' : 'false'"
+            />
+            <span class="slider round"></span>
+          </label>
+          <span class="toggle-status-text">
+            {{ valoresEditados[config.clave] === 'true' ? 'Activado' : 'Desactivado' }}
+          </span>
+        </ng-container>
+
+        <!-- Input Numérico -->
+        <ng-container *ngIf="config.tipoDato === 'NUMBER'">
+          <div class="input-with-suffix">
+            <input
+              type="number"
+              class="form-control"
+              [(ngModel)]="valoresEditados[config.clave]"
+              step="any"
+            />
+          </div>
+        </ng-container>
+
+        <!-- Input Texto -->
+        <ng-container *ngIf="config.tipoDato === 'STRING'">
+          <input
+            type="text"
+            class="form-control text-input"
+            [(ngModel)]="valoresEditados[config.clave]"
+          />
+        </ng-container>
+      </div>
+    </div>
+  </div>
+
+  <!-- PESTAÑA: CATÁLOGOS DINÁMICOS -->
+  <div class="catalog-section" *ngIf="activeTab === 'CATALOGOS'">
+    <!-- Barra Superior de Catálogos -->
+    <div class="catalog-bar">
+      <div class="catalog-selector-group">
+        <label class="catalog-label">Seleccionar Catálogo:</label>
+        <div class="catalog-pills">
+          <button
+            class="pill-btn"
+            [class.active]="catalogoTipoSeleccionado === 'TIPO_PRUEBA'"
+            (click)="cambiarTipoCatalogo('TIPO_PRUEBA')"
+          >
+            <span class="material-symbols-outlined">checklist</span>
+            <span>Tipos de Prueba</span>
+          </button>
+          <button
+            class="pill-btn"
+            [class.active]="catalogoTipoSeleccionado === 'TIPO_REQUERIMIENTO'"
+            (click)="cambiarTipoCatalogo('TIPO_REQUERIMIENTO')"
+          >
+            <span class="material-symbols-outlined">assignment</span>
+            <span>Tipos de Requerimiento</span>
+          </button>
+        </div>
+      </div>
+
+      <button class="btn-primary-sm" (click)="abrirModalNuevoCatalogo()">
+        <span class="material-symbols-outlined">add</span>
+        <span>Nuevo Elemento</span>
+      </button>
+    </div>
+
+    <!-- Spinner Catálogos -->
+    <div *ngIf="cargandoCatalogos" class="loading-state">
+      <div class="spinner"></div>
+      <p>Cargando elementos del catálogo...</p>
+    </div>
+
+    <!-- Tabla de Catálogo -->
+    <div class="table-container" *ngIf="!cargandoCatalogos">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th style="width: 80px; text-align: center;">Orden</th>
+            <th style="width: 150px;">Código</th>
+            <th style="width: 220px;">Nombre</th>
+            <th>Descripción</th>
+            <th style="width: 120px; text-align: center;">Estado</th>
+            <th style="width: 140px; text-align: right;">Acciones</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let item of catalogos">
+            <td style="text-align: center;">
+              <span class="order-badge">{{ item.orden }}</span>
+            </td>
+            <td>
+              <span class="catalog-code">{{ item.codigo }}</span>
+            </td>
+            <td>
+              <span class="catalog-name">{{ item.nombre }}</span>
+            </td>
+            <td>
+              <span class="catalog-desc">{{ item.descripcion || '—' }}</span>
+            </td>
+            <td style="text-align: center;">
+              <span
+                class="status-pill"
+                [class.status-active]="item.activo"
+                [class.status-inactive]="!item.activo"
+              >
+                {{ item.activo ? 'Activo' : 'Inactivo' }}
+              </span>
+            </td>
+            <td style="text-align: right;">
+              <div class="table-actions">
+                <button
+                  class="btn-action-icon"
+                  (click)="abrirModalEditarCatalogo(item)"
+                  title="Editar elemento"
+                >
+                  <span class="material-symbols-outlined">edit</span>
+                </button>
+                <button
+                  class="btn-action-icon"
+                  [class.text-danger]="item.activo"
+                  [class.text-success]="!item.activo"
+                  (click)="toggleEstadoCatalogo(item)"
+                  [title]="item.activo ? 'Desactivar' : 'Activar'"
+                >
+                  <span class="material-symbols-outlined">
+                    {{ item.activo ? 'toggle_on' : 'toggle_off' }}
+                  </span>
+                </button>
+              </div>
+            </td>
+          </tr>
+
+          <tr *ngIf="catalogos.length === 0">
+            <td colspan="6" class="empty-state">
+              <span class="material-symbols-outlined empty-icon">inbox</span>
+              <p>No hay elementos definidos en este catálogo.</p>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- MODAL: CREAR / EDITAR ELEMENTO DE CATÁLOGO -->
+  <app-modal [isOpen]="mostrarModalCatalogo" (close)="cerrarModalCatalogo()" maxWidth="540px">
+    <div class="modal-box">
+      <div class="modal-header">
+        <div class="modal-title-wrap">
+          <span class="material-symbols-outlined modal-icon">category</span>
+          <h2 class="modal-title">{{ editandoCatalogoId ? 'Editar Elemento' : 'Nuevo Elemento de Catálogo' }}</h2>
+        </div>
+        <button class="modal-close-btn" (click)="cerrarModalCatalogo()">
+          <span class="material-symbols-outlined">close</span>
+        </button>
+      </div>
+
+      <div class="modal-body">
+        <div class="form-group">
+          <label class="form-label">Catálogo Destino</label>
+          <input
+            type="text"
+            class="form-control"
+            [value]="catalogoForm.tipo"
+            disabled
+          />
+        </div>
+
+        <div class="form-row">
+          <div class="form-group flex-1">
+            <label class="form-label">Código Identificador *</label>
+            <input
+              type="text"
+              class="form-control"
+              placeholder="Ej. FUNCIONAL, REGRESION"
+              [(ngModel)]="catalogoForm.codigo"
+              [disabled]="editandoCatalogoId !== null"
+              style="text-transform: uppercase;"
+            />
+          </div>
+          <div class="form-group" style="width: 100px;">
+            <label class="form-label">Orden</label>
+            <input
+              type="number"
+              class="form-control"
+              [(ngModel)]="catalogoForm.orden"
+              min="0"
+            />
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Nombre para Mostrar *</label>
+          <input
+            type="text"
+            class="form-control"
+            placeholder="Ej. Pruebas de Regresión"
+            [(ngModel)]="catalogoForm.nombre"
+          />
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Descripción</label>
+          <textarea
+            class="form-control"
+            rows="3"
+            placeholder="Finalidad y criterios de este elemento..."
+            [(ngModel)]="catalogoForm.descripcion"
+          ></textarea>
+        </div>
+
+        <div class="form-group checkbox-group">
+          <label class="checkbox-label">
+            <input
+              type="checkbox"
+              [(ngModel)]="catalogoForm.activo"
+            />
+            <span>Elemento Activo (disponible para selección)</span>
+          </label>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button class="btn-outline-sm" (click)="cerrarModalCatalogo()" [disabled]="guardando">
+          Cancelar
+        </button>
+        <button class="btn-primary-sm" (click)="guardarCatalogo()" [disabled]="guardando">
+          <span>{{ guardando ? 'Guardando...' : (editandoCatalogoId ? 'Actualizar' : 'Crear Elemento') }}</span>
+        </button>
+      </div>
+    </div>
+  </app-modal>
+</div>
+

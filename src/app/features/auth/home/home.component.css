@@ -1,0 +1,595 @@
+/* ============================================================
+   PANEL GENERAL / INICIO - DASHBOARD EJECUTIVO QA
+   Inspirado en LabControl & QA Enterprise Command Center
+   ============================================================ */
+
+.home-container {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 2rem 1.5rem 3rem;
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+  animation: fadeIn 0.3s ease-in-out;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* --- 1. HEADER ROW: SALUDO & ACCIONES PRINCIPALES --- */
+.header-row {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1.5rem;
+  padding-bottom: 0.5rem;
+}
+
+.user-greeting-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.greeting-title-wrap {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.greeting-title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #0f172a;
+  letter-spacing: -0.025em;
+  margin: 0;
+}
+
+.role-badge {
+  display: inline-flex;
+  align-items: center;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 0.25rem 0.625rem;
+  border-radius: 9999px;
+  background-color: #e2e8f0;
+  color: #334155;
+}
+
+.greeting-subtitle {
+  font-size: 0.875rem;
+  color: #64748b;
+  margin: 0;
+}
+
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.btn-action-outline {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.5rem 1rem;
+  background-color: #ffffff;
+  color: #334155;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  border: 1px solid #e2e8f0;
+  border-radius: 9999px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-action-outline:hover {
+  background-color: #f8fafc;
+  border-color: #cbd5e1;
+  color: #0f172a;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.06);
+}
+
+.btn-action-outline .icon-primary {
+  font-size: 18px;
+  color: #2563eb;
+}
+
+.btn-action-primary {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.5rem 1.125rem;
+  background-color: #2563eb;
+  color: #ffffff;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  border: 1px solid transparent;
+  border-radius: 9999px;
+  box-shadow: 0 2px 4px rgba(37, 99, 235, 0.2);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-action-primary:hover {
+  background-color: #1d4ed8;
+  box-shadow: 0 4px 8px rgba(37, 99, 235, 0.3);
+}
+
+.btn-action-primary .material-symbols-outlined {
+  font-size: 18px;
+}
+
+/* --- 2. GRID DE MÉTRICAS PRINCIPALES (3 CARDS GRANDES) --- */
+.metrics-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1.5rem;
+}
+
+.metric-card {
+  background-color: #ffffff;
+  padding: 1.75rem;
+  border-radius: 1rem;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.metric-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.06);
+}
+
+.metric-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1.25rem;
+}
+
+.metric-label {
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.075em;
+  color: #64748b;
+  font-family: var(--font-mono, monospace);
+}
+
+.badge-meta {
+  font-size: 0.6875rem;
+  font-weight: 600;
+  font-family: var(--font-mono, monospace);
+  padding: 0.2rem 0.5rem;
+  border-radius: 9999px;
+  background-color: #f1f5f9;
+  border: 1px solid #e2e8f0;
+  color: #64748b;
+}
+
+.badge-success {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  font-family: var(--font-mono, monospace);
+  padding: 0.2rem 0.6rem;
+  border-radius: 9999px;
+  background-color: #ecfdf5;
+  border: 1px solid #a7f3d0;
+  color: #065f46;
+}
+
+.badge-danger {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  font-family: var(--font-mono, monospace);
+  padding: 0.2rem 0.6rem;
+  border-radius: 9999px;
+  background-color: #fef2f2;
+  border: 1px solid #fecaca;
+  color: #991b1b;
+}
+
+.pulse-dot-sm {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  display: inline-block;
+}
+
+.dot-green {
+  background-color: #10b981;
+}
+
+.dot-red {
+  background-color: #ef4444;
+  animation: pulse 1.5s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.4; transform: scale(0.9); }
+}
+
+.metric-value-wrap {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+  margin-bottom: 1.25rem;
+}
+
+.metric-big-number {
+  font-size: 2.5rem;
+  font-weight: 800;
+  color: #0f172a;
+  letter-spacing: -0.03em;
+  line-height: 1;
+  font-family: var(--font-mono, monospace);
+}
+
+.metric-sub-number {
+  font-size: 1.25rem;
+  font-weight: 500;
+  color: #94a3b8;
+  font-family: var(--font-mono, monospace);
+}
+
+.metric-caption {
+  font-size: 0.75rem;
+  color: #64748b;
+  font-weight: 500;
+}
+
+/* Barras de progreso limpias */
+.progress-bar-bg {
+  width: 100%;
+  height: 8px;
+  background-color: #f1f5f9;
+  border-radius: 9999px;
+  overflow: hidden;
+  display: flex;
+}
+
+.progress-fill-blue {
+  height: 100%;
+  background-color: #2563eb;
+  border-radius: 9999px;
+  transition: width 0.6s ease;
+}
+
+.progress-fill-emerald {
+  height: 100%;
+  background-color: #10b981;
+  border-radius: 9999px;
+  transition: width 0.6s ease;
+}
+
+.progress-seg-red {
+  height: 100%;
+  background-color: #ef4444;
+}
+
+.progress-seg-amber {
+  height: 100%;
+  background-color: #f59e0b;
+}
+
+.progress-seg-slate {
+  height: 100%;
+  background-color: #cbd5e1;
+}
+
+/* --- 3. SECCIÓN DE ACCESOS RÁPIDOS --- */
+.quick-access-section {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.section-title {
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #64748b;
+  font-family: var(--font-mono, monospace);
+  margin: 0;
+}
+
+.quick-access-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1.25rem;
+}
+
+.qa-card {
+  background-color: #ffffff;
+  padding: 1.5rem;
+  border-radius: 1rem;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  transition: all 0.2s ease;
+  position: relative;
+}
+
+.qa-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.07);
+}
+
+.qa-icon-wrap {
+  width: 44px;
+  height: 44px;
+  border-radius: 0.75rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 1.25rem;
+  transition: all 0.2s ease;
+}
+
+.qa-icon-wrap .material-symbols-outlined {
+  font-size: 24px;
+}
+
+.icon-blue {
+  background-color: #eff6ff;
+  color: #2563eb;
+}
+
+.qa-card:hover .icon-blue {
+  background-color: #2563eb;
+  color: #ffffff;
+}
+
+.icon-rose {
+  background-color: #fff1f2;
+  color: #e11d48;
+}
+
+.qa-card:hover .icon-rose {
+  background-color: #e11d48;
+  color: #ffffff;
+}
+
+.icon-emerald {
+  background-color: #ecfdf5;
+  color: #059669;
+}
+
+.qa-card:hover .icon-emerald {
+  background-color: #059669;
+  color: #ffffff;
+}
+
+.icon-purple {
+  background-color: #faf5ff;
+  color: #7c3aed;
+}
+
+.qa-card:hover .icon-purple {
+  background-color: #7c3aed;
+  color: #ffffff;
+}
+
+.qa-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  margin-bottom: 1.25rem;
+}
+
+.qa-title {
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: #0f172a;
+  margin: 0;
+}
+
+.qa-subtitle {
+  font-size: 0.75rem;
+  color: #64748b;
+  font-family: var(--font-mono, monospace);
+  margin: 0;
+}
+
+.qa-action-row {
+  padding-top: 1rem;
+  border-top: 1px solid #f1f5f9;
+}
+
+.qa-btn {
+  width: 100%;
+  padding: 0.5rem 0.75rem;
+  border: none;
+  border-radius: 0.75rem;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.qa-btn .material-symbols-outlined {
+  font-size: 16px;
+  transition: transform 0.2s ease;
+}
+
+.qa-btn:hover .material-symbols-outlined {
+  transform: translateX(3px);
+}
+
+.qa-btn-blue {
+  background-color: #eff6ff;
+  color: #2563eb;
+}
+
+.qa-btn-blue:hover {
+  background-color: #2563eb;
+  color: #ffffff;
+}
+
+.qa-btn-rose {
+  background-color: #fff1f2;
+  color: #be123c;
+}
+
+.qa-btn-rose:hover {
+  background-color: #e11d48;
+  color: #ffffff;
+}
+
+.qa-btn-emerald {
+  background-color: #ecfdf5;
+  color: #047857;
+}
+
+.qa-btn-emerald:hover {
+  background-color: #059669;
+  color: #ffffff;
+}
+
+.qa-btn-purple {
+  background-color: #faf5ff;
+  color: #6d28d9;
+}
+
+.qa-btn-purple:hover {
+  background-color: #7c3aed;
+  color: #ffffff;
+}
+
+/* --- 4. BARRA DE SALUD DE INFRAESTRUCTURA --- */
+.infra-bar {
+  background-color: #ffffff;
+  padding: 1rem 1.5rem;
+  border-radius: 1rem;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.infra-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: #64748b;
+}
+
+.infra-header .material-symbols-outlined {
+  font-size: 18px;
+}
+
+.infra-title {
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #475569;
+  font-family: var(--font-mono, monospace);
+}
+
+.infra-pills-wrap {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.infra-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.35rem 0.85rem;
+  border-radius: 9999px;
+  background-color: #f8fafc;
+  border: 1px solid #e2e8f0;
+  font-size: 0.75rem;
+}
+
+.pill-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  display: inline-block;
+}
+
+.pill-dot-green {
+  background-color: #10b981;
+}
+
+.pill-dot-blue {
+  background-color: #3b82f6;
+}
+
+.pill-tag {
+  color: #64748b;
+  font-weight: 500;
+}
+
+.pill-status-green {
+  color: #047857;
+  font-weight: 700;
+  font-family: var(--font-mono, monospace);
+}
+
+.pill-status-blue {
+  color: #1d4ed8;
+  font-weight: 700;
+  font-family: var(--font-mono, monospace);
+}
+
+/* --- RESPONSIVIDAD --- */
+@media (max-width: 1024px) {
+  .metrics-grid {
+    grid-template-columns: 1fr;
+  }
+  .quick-access-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 640px) {
+  .header-row {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  .header-actions {
+    width: 100%;
+    justify-content: flex-start;
+  }
+  .quick-access-grid {
+    grid-template-columns: 1fr;
+  }
+  .infra-bar {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}
+

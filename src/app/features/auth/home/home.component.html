@@ -1,0 +1,190 @@
+<div class="home-container">
+  <!-- 1. Header Row: Saludo y Acciones Principales -->
+  <header class="header-row">
+    <div class="user-greeting-group">
+      <div class="greeting-title-wrap">
+        <h1 class="greeting-title">Hola, {{ getNombre() }}</h1>
+        <span class="role-badge">{{ getRol() }}</span>
+      </div>
+      <p class="greeting-subtitle">Centro de Mando & Control de Calidad de Software</p>
+    </div>
+
+    <!-- Acciones Rápidas de Cabecera -->
+    <div class="header-actions">
+      <button class="btn-action-outline" type="button" (click)="navegar('/casos-prueba')">
+        <span class="material-symbols-outlined icon-primary">add</span>
+        <span>Caso de prueba</span>
+      </button>
+      <button class="btn-action-primary" type="button" (click)="navegar('/incidencias')">
+        <span class="material-symbols-outlined">bug_report</span>
+        <span>Reportar bug</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- 2. Métricas Principales (3 Cards Grandes y Espaciosas) -->
+  <section class="metrics-grid">
+    <!-- Métrica 1: Cobertura -->
+    <div class="metric-card">
+      <div class="metric-card-header">
+        <span class="metric-label">Cobertura</span>
+        <span class="badge-meta">Meta: &gt;90%</span>
+      </div>
+      <div>
+        <div class="metric-value-wrap">
+          <span class="metric-big-number">{{ cobertura }}%</span>
+        </div>
+        <div class="progress-bar-bg">
+          <div class="progress-fill-blue" [style.width.%]="cobertura"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Métrica 2: Casos Ejecutados -->
+    <div class="metric-card">
+      <div class="metric-card-header">
+        <span class="metric-label">Casos Ejecutados</span>
+        <span class="badge-success">
+          <span class="pulse-dot-sm dot-green"></span>
+          {{ passRate }}% Pass Rate
+        </span>
+      </div>
+      <div>
+        <div class="metric-value-wrap">
+          <span class="metric-big-number">{{ casosEjecutados }}</span>
+          <span class="metric-sub-number">/ {{ casosTotales }}</span>
+        </div>
+        <div class="progress-bar-bg">
+          <div class="progress-fill-emerald" [style.width.%]="passRate"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Métrica 3: Bugs Abiertos -->
+    <div class="metric-card">
+      <div class="metric-card-header">
+        <span class="metric-label">Bugs Abiertos</span>
+        <span class="badge-danger">
+          <span class="pulse-dot-sm dot-red"></span>
+          {{ bugsBloqueantes }} bloqueantes
+        </span>
+      </div>
+      <div>
+        <div class="metric-value-wrap">
+          <span class="metric-big-number">{{ bugsAbiertos }}</span>
+          <span class="metric-caption">totales reportados</span>
+        </div>
+        <div class="progress-bar-bg" *ngIf="bugsAbiertos > 0; else noBugsBar">
+          <div class="progress-seg-red" [style.width.%]="pctCritica" [title]="'Críticas: ' + pctCritica + '%'"></div>
+          <div class="progress-seg-amber" [style.width.%]="pctMayor" [title]="'Mayores: ' + pctMayor + '%'"></div>
+          <div class="progress-seg-slate" [style.width.%]="pctMenor" [title]="'Menores/Triviales: ' + pctMenor + '%'"></div>
+        </div>
+        <ng-template #noBugsBar>
+          <div class="progress-bar-bg">
+            <div class="progress-fill-emerald" style="width: 100%" title="Sin incidencias activas"></div>
+          </div>
+        </ng-template>
+      </div>
+    </div>
+  </section>
+
+  <!-- 3. Accesos Rápidos (Tarjetas Limpias y Espaciosas) -->
+  <section class="quick-access-section">
+    <h2 class="section-title">Accesos Rápidos</h2>
+    <div class="quick-access-grid">
+      <!-- Tarjeta 1: Casos por Ejecutar -->
+      <div class="qa-card">
+        <div class="qa-icon-wrap icon-blue">
+          <span class="material-symbols-outlined">play_circle</span>
+        </div>
+        <div class="qa-info">
+          <h3 class="qa-title">Casos por Ejecutar</h3>
+          <p class="qa-subtitle">{{ casosEjecutados }} ejecutados de {{ casosTotales }}</p>
+        </div>
+        <div class="qa-action-row">
+          <button class="qa-btn qa-btn-blue" type="button" (click)="navegar('/ejecucion')">
+            <span>Iniciar</span>
+            <span class="material-symbols-outlined">arrow_forward</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Tarjeta 2: Bugs Bloqueantes -->
+      <div class="qa-card">
+        <div class="qa-icon-wrap icon-rose">
+          <span class="material-symbols-outlined">crisis_alert</span>
+        </div>
+        <div class="qa-info">
+          <h3 class="qa-title">Bugs Bloqueantes</h3>
+          <p class="qa-subtitle">{{ bugsBloqueantes }} críticos activos</p>
+        </div>
+        <div class="qa-action-row">
+          <button class="qa-btn qa-btn-rose" type="button" (click)="navegar('/incidencias')">
+            <span>Revisar</span>
+            <span class="material-symbols-outlined">arrow_forward</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Tarjeta 3: Matriz de Trazabilidad -->
+      <div class="qa-card">
+        <div class="qa-icon-wrap icon-emerald">
+          <span class="material-symbols-outlined">account_tree</span>
+        </div>
+        <div class="qa-info">
+          <h3 class="qa-title">Matriz de Trazabilidad</h3>
+          <p class="qa-subtitle">{{ cobertura }}% cobertura de REQs</p>
+        </div>
+        <div class="qa-action-row">
+          <button class="qa-btn qa-btn-emerald" type="button" (click)="navegar('/trazabilidad')">
+            <span>Ver</span>
+            <span class="material-symbols-outlined">arrow_forward</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Tarjeta 4: Reportes de Sprint -->
+      <div class="qa-card">
+        <div class="qa-icon-wrap icon-purple">
+          <span class="material-symbols-outlined">bar_chart</span>
+        </div>
+        <div class="qa-info">
+          <h3 class="qa-title">Reportes & Métricas</h3>
+          <p class="qa-subtitle">Métricas de Release</p>
+        </div>
+        <div class="qa-action-row">
+          <button class="qa-btn qa-btn-purple" type="button" (click)="navegar('/reportes')">
+            <span>Abrir</span>
+            <span class="material-symbols-outlined">arrow_forward</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 4. Salud de Infraestructura (Barra Inferior con Pills) -->
+  <section class="infra-bar">
+    <div class="infra-header">
+      <span class="material-symbols-outlined">dns</span>
+      <span class="infra-title">Salud de Infraestructura</span>
+    </div>
+
+    <div class="infra-pills-wrap">
+      <div class="infra-pill">
+        <span class="pill-dot pill-dot-green"></span>
+        <span class="pill-tag">Staging:</span>
+        <span class="pill-status-green">Activo</span>
+      </div>
+      <div class="infra-pill">
+        <span class="pill-dot pill-dot-green"></span>
+        <span class="pill-tag">UAT:</span>
+        <span class="pill-status-green">Estable</span>
+      </div>
+      <div class="infra-pill">
+        <span class="pill-dot pill-dot-blue"></span>
+        <span class="pill-tag">CI/CD:</span>
+        <span class="pill-status-blue">100% Passing</span>
+      </div>
+    </div>
+  </section>
+</div>
